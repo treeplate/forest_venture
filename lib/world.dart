@@ -1,7 +1,5 @@
 import 'dart:io';
 
-import 'package:flutter/cupertino.dart';
-
 class World {
   World(this.width, this.cells, this._playerx, this._playery);
   World.fromHeight(int height, this.cells, this._playerx, this._playery)
