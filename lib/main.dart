@@ -68,6 +68,7 @@ class _WorldPainter extends CustomPainter {
         paintCell(canvas, size, x, y, world.at(x, y));
       }
     }
+    paintPerson(canvas, size, world.playerx, world.playery);
   }
 
   void paintCell(Canvas canvas, Size size, int x, int y, Cell cell) {
@@ -75,6 +76,10 @@ class _WorldPainter extends CustomPainter {
         Rect.fromLTWH(x * cellSize.width, y * cellSize.height,
             cellSize.width * 0.8, cellSize.height * 0.8),
         Paint()..color = Colors.blue);
+  }
+
+  void paintPerson(Canvas canvas, Size size, int x, int y) {
+    //TODO
   }
 
   @override
