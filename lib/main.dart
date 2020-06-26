@@ -111,3 +111,15 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 }
+
+class WorldCanvas extends StatefulWidget {
+  @override
+  _WorldCanvasState createState() => _WorldCanvasState();
+}
+
+class _WorldCanvasState extends State<WorldCanvas> {
+  @override
+  Widget build(BuildContext context) {
+    return Container();
+  }
+}
