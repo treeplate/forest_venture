@@ -9,11 +9,14 @@ class World {
     List<Cell> parsed = [];
     int width = 0;
     for (String line in data) {
+      cols:
       for (String char in line.split('')) {
         switch (char) {
           case " ":
             parsed.add(Cell());
             break;
+          case "|":
+            break cols;
           default:
             throw FormatException("Unexpected \"$char\" while parsing world");
         }
@@ -26,6 +29,7 @@ class World {
 }
 
 World fromFile(String file) {
+  print(Directory(".").listSync());
   return World.parse(File(file).readAsLinesSync());
 }
 
