@@ -4,6 +4,8 @@ import 'package:flutter/cupertino.dart';
 
 class World {
   World(this.width, this.cells, this._playerx, this._playery);
+  World.fromHeight(int height, this.cells, this._playerx, this._playery)
+      : this.width = cells.length ~/ height;
   final int width;
   int get height {
     assert(cells.length.isFinite);
@@ -41,7 +43,7 @@ class World {
   final List<Cell> cells;
   factory World.parse(List<String> data) {
     List<Cell> parsed = [];
-    int width = 0;
+    int height = 0;
     List<String> xy = data.first.split(" ");
     int x = int.parse(xy[0]);
     int y = int.parse(xy[1]);
@@ -58,9 +60,9 @@ class World {
             throw FormatException("Unexpected \"$char\" while parsing world");
         }
       }
-      width++;
+      height++;
     }
-    return World(width, parsed, x, y);
+    return World.fromHeight(height, parsed, x, y);
   }
   Cell at(int x, int y) => cells[x + (y * width)];
 }
