@@ -1,3 +1,5 @@
+import 'dart:io';
+
 class World {
   World(this.width, this.cells);
   final int width;
@@ -21,6 +23,10 @@ class World {
     return World(width, parsed);
   }
   Cell at(int x, int y) => cells[x + (y * width)];
+}
+
+World fromFile(String file) {
+  return World.parse(File(file).readAsLinesSync());
 }
 
 class Cell {}

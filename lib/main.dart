@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import 'world.dart';
 
 void main() {
-  runApp(ForestVenture(world: World.parse(<String>['  ', '  '])));
+  runApp(ForestVenture(world: fromFile("main.world")));
 }
 
 class ForestVenture extends StatelessWidget {
-  ForestVenture({ Key key, this.world }): super(key: key);
+  ForestVenture({Key key, this.world}) : super(key: key);
 
   final World world;
 
@@ -21,7 +21,7 @@ class ForestVenture extends StatelessWidget {
 }
 
 class GamePage extends StatefulWidget {
-  GamePage({ Key key, this.world }) : super(key: key);
+  GamePage({Key key, this.world}) : super(key: key);
 
   final World world;
 
@@ -37,7 +37,7 @@ class _GamePageState extends State<GamePage> {
 }
 
 class WorldCanvas extends StatefulWidget {
-  WorldCanvas({ Key key, this.world }): super(key: key);
+  WorldCanvas({Key key, this.world}) : super(key: key);
 
   final World world;
 
@@ -71,7 +71,10 @@ class _WorldPainter extends CustomPainter {
   }
 
   void paintCell(Canvas canvas, Size size, int x, int y, Cell cell) {
-    canvas.drawRect(Rect.fromLTWH(x * cellSize.width, y * cellSize.height, cellSize.width * 0.8, cellSize.height * 0.8), Paint()..color = Colors.blue);
+    canvas.drawRect(
+        Rect.fromLTWH(x * cellSize.width, y * cellSize.height,
+            cellSize.width * 0.8, cellSize.height * 0.8),
+        Paint()..color = Colors.blue);
   }
 
   @override
