@@ -3,7 +3,14 @@ import 'dart:io';
 class World {
   World(this.width, this.cells);
   final int width;
-  int get height => (cells.length / width).round();
+  int get height {
+    assert(cells.length.isFinite);
+    assert(width.isFinite);
+    //print("l: ${cells.length}");
+    //print("w: $width");
+    return cells.length ~/ width;
+  }
+
   final List<Cell> cells;
   factory World.parse(List<String> data) {
     List<Cell> parsed = [];
@@ -29,8 +36,7 @@ class World {
 }
 
 World fromFile(String file) {
-  print(Directory(".").listSync());
-  return World.parse(File(file).readAsLinesSync());
+  return World.parse(File("lib/" + file).readAsLinesSync());
 }
 
 class Cell {}
