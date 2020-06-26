@@ -9,11 +9,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:forest_venture/main.dart';
+import 'package:forest_venture/world.dart';
 
 void main() {
   testWidgets('World should cover screen', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(MyApp());
+    await tester.pumpWidget(ForestVenture(world: World(1, <Cell>[Cell()])));
     expect(tester.getRect(find.byType(WorldCanvas)), Rect.fromLTWH(0.0, 0.0, 800.0, 600.0));
   });
 }
