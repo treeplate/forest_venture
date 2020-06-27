@@ -3,36 +3,54 @@ import 'package:flutter/material.dart';
 import 'world.dart';
 
 void main() {
-  runApp(ForestVenture(world: fromFile("main.world")));
+  runApp(ForestVenture());
 }
 
 class ForestVenture extends StatelessWidget {
-  ForestVenture({Key key, this.world}) : super(key: key);
-
-  final World world;
+  ForestVenture({Key key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Forest Venture',
-      home: GamePage(world: world),
+      home: GamePage(),
     );
   }
 }
 
 class GamePage extends StatefulWidget {
-  GamePage({Key key, this.world}) : super(key: key);
-
-  final World world;
+  GamePage({Key key}) : super(key: key);
 
   @override
   _GamePageState createState() => _GamePageState();
 }
 
 class _GamePageState extends State<GamePage> {
+  World _world;
+
+  @override
+  void initState() {
+    super.initState();
+    _init();
+  }
+
+  Future<void> _init() async {
+    String data = await DefaultAssetBundle.of(context).loadString('worlds/main.world');
+    if (!mounted)
+      return;
+    setState(() {
+      _world = World.parse(data);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    return WorldCanvas(world: widget.world);
+    if (_world == null) {
+      return Center(
+        child: CircularProgressIndicator(),
+      );
+    }
+    return WorldCanvas(world: _world);
   }
 }
 
@@ -63,23 +81,33 @@ class _WorldPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+
+    Offset worldOrigin = Offset(
+      size.width / 2.0 - (world.playerX + 0.5) * cellSize.width,
+      size.height / 2.0 - (world.playerY + 0.5) * cellSize.height,
+    );
+
     for (int y = 0; y < world.height; y += 1) {
       for (int x = 0; x < world.width; x += 1) {
-        paintCell(canvas, size, x, y, world.at(x, y));
+        paintCell(canvas, cellSize, worldOrigin + Offset(x * cellSize.width, y * cellSize.height), world.at(x, y));
       }
     }
-    paintPerson(canvas, size, world.playerx, world.playery);
+    paintPerson(canvas, cellSize, size.center(Offset.zero) - cellSize.center(Offset.zero));
   }
 
-  void paintCell(Canvas canvas, Size size, int x, int y, Cell cell) {
+  void paintCell(Canvas canvas, Size cellSize, Offset cellOrigin, Cell cell) {
     canvas.drawRect(
-        Rect.fromLTWH(x * cellSize.width, y * cellSize.height,
-            cellSize.width * 0.8, cellSize.height * 0.8),
-        Paint()..color = Colors.blue);
+      (cellOrigin & cellSize).deflate(2.0),
+      Paint()..color = Colors.blue,
+    );
   }
 
-  void paintPerson(Canvas canvas, Size size, int x, int y) {
-    //TODO
+  void paintPerson(Canvas canvas, Size cellSize, Offset cellOrigin) {
+    canvas.drawCircle(
+      cellSize.center(cellOrigin),
+      cellSize.shortestSide / 2.0,
+      Paint()..color = Colors.yellow,
+    );
   }
 
   @override

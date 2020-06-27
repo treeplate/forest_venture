@@ -1,5 +1,3 @@
-import 'dart:io';
-
 class World {
   World(this.width, this.cells, this._playerX, this._playerY);
   World.fromHeight(int height, this.cells, this._playerX, this._playerY)
@@ -39,7 +37,8 @@ class World {
   }
 
   final List<Cell> cells;
-  factory World.parse(List<String> data) {
+  factory World.parse(String rawData) {
+    List<String> data = rawData.split('\n');
     List<Cell> parsed = [];
     int height = 0;
     List<String> xy = data.first.split(" ");
@@ -63,10 +62,6 @@ class World {
     return World.fromHeight(height, parsed, x, y);
   }
   Cell at(int x, int y) => cells[x + (y * width)];
-}
-
-World fromFile(String file) {
-  return World.parse(File("lib/" + file).readAsLinesSync());
 }
 
 class Cell {
