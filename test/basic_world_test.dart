@@ -6,7 +6,7 @@ import 'package:forest_venture/world.dart';
 void main() {
   testWidgets('Most basic world', (WidgetTester tester) async {
     await tester.pumpWidget(
-      GamePage(source: TestWorldSource(World(1, <Cell>[Empty()], 0, 0))),
+      MaterialApp(home: GamePage(source: TestWorldSource(World(1, <Cell>[Empty()], 0, 0)))),
     );
     await tester.pump();
     await expectLater(
@@ -17,11 +17,9 @@ void main() {
 
   testWidgets('Movement', (WidgetTester tester) async {
     await tester.pumpWidget(
-      GamePage(
-          source: TestWorldSource(World(2, <Cell>[Empty(), Goal()], 0, 0))),
+      MaterialApp(home: GamePage(source: TestWorldSource(World(2, <Cell>[Empty(), Goal()], 0, 0)))),
     );
     await tester.pump();
-    //TODO: Check image
     await expectLater(
       find.byType(WorldCanvas),
       matchesGoldenFile('basic_world_move_before.png'),
@@ -32,7 +30,7 @@ void main() {
         tester.getCenter(find.byType(WorldCanvas)).dy,
       ),
     );
-    //TODO: Check image again
+    await tester.pump();
     await expectLater(
       find.byType(WorldCanvas),
       matchesGoldenFile('basic_world_move_after.png'),
