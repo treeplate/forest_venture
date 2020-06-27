@@ -106,6 +106,19 @@ class _WorldPainter extends CustomPainter {
     );
   }
 
+  Color cellColor(Cell cell) {
+    switch (cell.runtimeType) {
+      case Empty:
+        return Colors.blue;
+      case Goal:
+        return Colors.green;
+      case Tree:
+        return Colors.black;
+      default:
+        throw UnimplementedError("Unknown ${cell.runtimeType}");
+    }
+  }
+
   void paintPerson(Canvas canvas, Size cellSize, Offset cellOrigin) {
     canvas.drawCircle(
       cellSize.center(cellOrigin),

@@ -5,14 +5,14 @@ import 'package:forest_venture/world.dart';
 void main() {
   testWidgets('Most basic world', (WidgetTester tester) async {
     await tester.pumpWidget(
-      WorldCanvas(world: World(1, <Cell>[Cell()], 0, 0)),
+      WorldCanvas(world: World(1, <Cell>[Empty()], 0, 0)),
     );
     await expectLater(
         find.byType(WorldCanvas), matchesGoldenFile('basic_world_1.png'));
   });
   testWidgets('Movement', (WidgetTester tester) async {
     await tester.pumpWidget(
-      WorldCanvas(world: World(2, <Cell>[Cell(), Goal()], 0, 0)),
+      WorldCanvas(world: World(2, <Cell>[Empty(), Goal()], 0, 0)),
     );
     //TODO: Check image
     await tester.tapAt(Offset(

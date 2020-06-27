@@ -74,3 +74,7 @@ abstract class Cell {
 class Empty extends Cell {}
 
 class Goal extends Cell {}
+
+class Tree extends Cell {
+  bool get clear => false;
+}
