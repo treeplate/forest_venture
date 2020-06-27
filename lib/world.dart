@@ -54,6 +54,9 @@ class World {
           case "G":
             parsed.add(Goal());
             break;
+          case "#":
+            parsed.add(Tree());
+            break;
           case "|":
             break cols;
           default:
