@@ -51,6 +51,9 @@ class World {
           case " ":
             parsed.add(Cell());
             break;
+          case "G":
+            parsed.add(Goal());
+            break;
           case "|":
             break cols;
           default:
@@ -67,3 +70,5 @@ class World {
 class Cell {
   bool get clear => true;
 }
+
+class Goal extends Cell {}

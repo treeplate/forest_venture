@@ -35,9 +35,9 @@ class _GamePageState extends State<GamePage> {
   }
 
   Future<void> _init() async {
-    String data = await DefaultAssetBundle.of(context).loadString('worlds/main.world');
-    if (!mounted)
-      return;
+    String data =
+        await DefaultAssetBundle.of(context).loadString('worlds/main.world');
+    if (!mounted) return;
     setState(() {
       _world = World.parse(data);
     });
@@ -81,7 +81,6 @@ class _WorldPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-
     Offset worldOrigin = Offset(
       size.width / 2.0 - (world.playerX + 0.5) * cellSize.width,
       size.height / 2.0 - (world.playerY + 0.5) * cellSize.height,
@@ -89,16 +88,21 @@ class _WorldPainter extends CustomPainter {
 
     for (int y = 0; y < world.height; y += 1) {
       for (int x = 0; x < world.width; x += 1) {
-        paintCell(canvas, cellSize, worldOrigin + Offset(x * cellSize.width, y * cellSize.height), world.at(x, y));
+        paintCell(
+            canvas,
+            cellSize,
+            worldOrigin + Offset(x * cellSize.width, y * cellSize.height),
+            world.at(x, y));
       }
     }
-    paintPerson(canvas, cellSize, size.center(Offset.zero) - cellSize.center(Offset.zero));
+    paintPerson(canvas, cellSize,
+        size.center(Offset.zero) - cellSize.center(Offset.zero));
   }
 
   void paintCell(Canvas canvas, Size cellSize, Offset cellOrigin, Cell cell) {
     canvas.drawRect(
       (cellOrigin & cellSize).deflate(2.0),
-      Paint()..color = Colors.blue,
+      Paint()..color = cell is Goal ? Colors.green : Colors.blue,
     );
   }
 
