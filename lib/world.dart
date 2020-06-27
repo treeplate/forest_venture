@@ -58,6 +58,7 @@ class World {
             parsed.add(Tree());
             break;
           case "|":
+            parsed.add(null);
             break cols;
           default:
             throw FormatException("Unexpected \"$char\" while parsing world");
@@ -67,6 +68,8 @@ class World {
     }
     return World.fromHeight(height, parsed, x, y);
   }
+  String toString() =>
+      "$playerX $playerY\n" + cells.join('').split("null").join("|\n");
   Cell at(int x, int y) => cells[x + (y * width)];
 }
 
@@ -74,10 +77,15 @@ abstract class Cell {
   bool get clear => true;
 }
 
-class Empty extends Cell {}
+class Empty extends Cell {
+  String toString() => " ";
+}
 
-class Goal extends Cell {}
+class Goal extends Cell {
+  String toString() => "G";
+}
 
 class Tree extends Cell {
   bool get clear => false;
+  String toString() => "#";
 }

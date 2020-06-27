@@ -42,6 +42,8 @@ class CellState {
 
   factory CellState.fromCell(Cell cell) {
     switch (cell.runtimeType) {
+      case Null:
+        return CellState(Colors.black);
       case Empty:
         return CellState(Colors.blue);
       case Goal:
@@ -63,7 +65,9 @@ class WorldState {
   factory WorldState.fromWorld(World world) {
     return WorldState(
       world.width,
-      world.cells.map<CellState>((Cell cell) => CellState.fromCell(cell)).toList(),
+      world.cells
+          .map<CellState>((Cell cell) => CellState.fromCell(cell))
+          .toList(),
       Offset(world.playerX + 0.5, world.playerY + 0.5),
     );
   }
@@ -88,8 +92,7 @@ class _GamePageState extends State<GamePage> {
   @override
   void didUpdateWidget(GamePage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.source != oldWidget.source)
-      _initWorld();
+    if (widget.source != oldWidget.source) _initWorld();
   }
 
   void _initWorld() {
@@ -161,12 +164,15 @@ class _WorldPainter extends CustomPainter {
         );
       }
     }
-    paintPerson(canvas, cellSize,
+    paintPerson(
+      canvas,
+      cellSize,
       size.center(Offset.zero) - cellSize.center(Offset.zero),
     );
   }
 
-  void paintCell(Canvas canvas, Size cellSize, Offset cellOrigin, CellState cell) {
+  void paintCell(
+      Canvas canvas, Size cellSize, Offset cellOrigin, CellState cell) {
     canvas.drawRect(
       (cellOrigin & cellSize).deflate(2.0),
       Paint()..color = cell.color,
