@@ -49,7 +49,7 @@ class World {
       for (String char in line.split('')) {
         switch (char) {
           case " ":
-            parsed.add(Cell());
+            parsed.add(Empty());
             break;
           case "G":
             parsed.add(Goal());
@@ -67,8 +67,10 @@ class World {
   Cell at(int x, int y) => cells[x + (y * width)];
 }
 
-class Cell {
+abstract class Cell {
   bool get clear => true;
 }
+
+class Empty extends Cell {}
 
 class Goal extends Cell {}
