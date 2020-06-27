@@ -1,4 +1,6 @@
-class World {
+import 'package:flutter/foundation.dart';
+
+class World extends ChangeNotifier {
   World(this.width, this.cells, this._playerX, this._playerY);
   World.fromHeight(int height, this.cells, this._playerX, this._playerY)
       : this.width = cells.length ~/ height;
@@ -18,25 +20,38 @@ class World {
 
   void left() {
     assert(playerX > 0);
-    if (at(playerX - 1, playerY).clear) _playerX--;
+    if (at(playerX - 1, playerY).clear) {
+      _playerX--;
+      notifyListeners();
+    }
   }
 
   void right() {
     assert(playerX < width - 1);
-    if (at(playerX + 1, playerY).clear) _playerX++;
+    if (at(playerX + 1, playerY).clear) {
+      _playerX++;
+      notifyListeners();
+    }
   }
 
   void up() {
     assert(playerY > 0);
-    if (at(playerX, playerY - 1).clear) _playerY--;
+    if (at(playerX, playerY - 1).clear) {
+      _playerY--;
+      notifyListeners();
+    }
   }
 
   void down() {
     assert(playerY < height - 1);
-    if (at(playerX, playerY + 1).clear) _playerY++;
+    if (at(playerX, playerY + 1).clear) {
+      _playerY++;
+      notifyListeners();
+    }
   }
 
   final List<Cell> cells;
+
   factory World.parse(String rawData) {
     List<String> data = rawData.split('\n');
     List<Cell> parsed = [];

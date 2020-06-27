@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -99,15 +100,23 @@ class _GamePageState extends State<GamePage> {
     final WorldSource source = widget.source;
     source.initWorld().then((World value) {
       if (mounted && (widget.source == source)) {
+        _world?.removeListener(_updateWorldState);
         _world = value;
+        _world?.addListener(_updateWorldState);
         _updateWorldState();
       }
     });
   }
 
+  @override
+  void dispose() {
+    _world?.removeListener(_updateWorldState);
+    super.dispose();
+  }
+
   void _updateWorldState() {
     setState(() {
-      _currentFrame = WorldState.fromWorld(_world);
+      _currentFrame = _world == null ? null : WorldState.fromWorld(_world);
     });
   }
 
@@ -118,14 +127,71 @@ class _GamePageState extends State<GamePage> {
         child: CircularProgressIndicator(),
       );
     }
-    return WorldCanvas(world: _currentFrame);
+    return WorldCanvas(
+      world: _currentFrame,
+      child: Stack(
+        children: <Widget>[
+          ClipPath(
+            clipper: PolygonClipper(<Offset>[Offset(0.0, 0.0), Offset(1.0, 0.0), Offset(0.5, 0.5)]),
+            child: Material(
+              type: MaterialType.transparency,
+              child: InkWell(onTap: _world?.up),
+            )
+          ),
+          ClipPath(
+            clipper: PolygonClipper(<Offset>[Offset(1.0, 0.0), Offset(1.0, 1.0), Offset(0.5, 0.5)]),
+            child: Material(
+              type: MaterialType.transparency,
+              child: InkWell(onTap: _world?.right),
+            ),
+          ),
+          ClipPath(
+            clipper: PolygonClipper(<Offset>[Offset(1.0, 1.0), Offset(0.0, 1.0), Offset(0.5, 0.5)]),
+            child: Material(
+              type: MaterialType.transparency,
+              child: InkWell(onTap: _world?.down),
+            ),
+          ),
+          ClipPath(
+            clipper: PolygonClipper(<Offset>[Offset(0.0, 1.0), Offset(0.0, 0.0), Offset(0.5, 0.5)]),
+            child: Material(
+              type: MaterialType.transparency,
+              child: InkWell(onTap: _world?.left),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class PolygonClipper extends CustomClipper<Path> {
+  PolygonClipper(this.points) : assert(points.length >= 3);
+
+  final List<Offset> points;
+
+  @override
+  Path getClip(Size size) {
+    final Path path = Path()
+      ..moveTo(size.width * points.first.dx, size.height * points.first.dy);
+    for (Offset offset in points.skip(1))
+      path.lineTo(size.width * offset.dx, size.height * offset.dy);
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(PolygonClipper oldClipper) {
+    return listEquals<Offset>(oldClipper.points, points);
   }
 }
 
 class WorldCanvas extends StatefulWidget {
-  WorldCanvas({Key key, this.world}) : super(key: key);
+  WorldCanvas({Key key, this.world, this.child}) : super(key: key);
 
   final WorldState world;
+
+  final Widget child;
 
   @override
   _WorldCanvasState createState() => _WorldCanvasState();
@@ -136,6 +202,7 @@ class _WorldCanvasState extends State<WorldCanvas> {
   Widget build(BuildContext context) {
     return CustomPaint(
       painter: _WorldPainter(widget.world),
+      child: widget.child,
     );
   }
 }
