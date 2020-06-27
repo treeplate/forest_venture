@@ -19,7 +19,7 @@ class World extends ChangeNotifier {
   int get playerY => _playerY;
 
   void left() {
-    assert(playerX > 0);
+    if (playerX <= 0) return;
     if (at(playerX - 1, playerY).clear) {
       _playerX--;
       notifyListeners();
@@ -27,7 +27,7 @@ class World extends ChangeNotifier {
   }
 
   void right() {
-    assert(playerX < width - 1);
+    if (!(playerX < width - 1)) return;
     if (at(playerX + 1, playerY).clear) {
       _playerX++;
       notifyListeners();
@@ -35,7 +35,7 @@ class World extends ChangeNotifier {
   }
 
   void up() {
-    assert(playerY > 0);
+    if (!(playerY > 0)) return;
     if (at(playerX, playerY - 1).clear) {
       _playerY--;
       notifyListeners();
@@ -43,7 +43,7 @@ class World extends ChangeNotifier {
   }
 
   void down() {
-    assert(playerY < height - 1);
+    if (!(playerY < height - 1)) return;
     if (at(playerX, playerY + 1).clear) {
       _playerY++;
       notifyListeners();
