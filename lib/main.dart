@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'world.dart';
 
@@ -13,33 +14,97 @@ class ForestVenture extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Forest Venture',
-      home: GamePage(),
+      home: GamePage(source: WorldSource()),
     );
   }
 }
 
+@immutable
+class WorldSource {
+  Future<World> initWorld() async {
+    String data = await rootBundle.loadString('worlds/main.world');
+    return World.parse(data);
+  }
+}
+
 class GamePage extends StatefulWidget {
-  GamePage({Key key}) : super(key: key);
+  GamePage({Key key, this.source}) : super(key: key);
+
+  final WorldSource source;
 
   @override
   _GamePageState createState() => _GamePageState();
 }
 
+@immutable
+class CellState {
+  const CellState(this.color);
+
+  factory CellState.fromCell(Cell cell) {
+    switch (cell.runtimeType) {
+      case Empty:
+        return CellState(Colors.blue);
+      case Goal:
+        return CellState(Colors.green);
+      case Tree:
+        return CellState(Colors.black);
+      default:
+        throw UnimplementedError("Unknown ${cell.runtimeType}");
+    }
+  }
+
+  final Color color;
+}
+
+@immutable
+class WorldState {
+  const WorldState(this.width, this.grid, this.offset);
+
+  factory WorldState.fromWorld(World world) {
+    return WorldState(
+      world.width,
+      world.cells.map<CellState>((Cell cell) => CellState.fromCell(cell)).toList(),
+      Offset(world.playerX + 0.5, world.playerY + 0.5),
+    );
+  }
+
+  final int width;
+  int get height => grid.length ~/ width;
+  final List<CellState> grid;
+  final Offset offset;
+}
+
 class _GamePageState extends State<GamePage> {
   World _world;
+
+  WorldState _currentFrame;
 
   @override
   void initState() {
     super.initState();
-    _init();
+    _initWorld();
   }
 
-  Future<void> _init() async {
-    String data =
-        await DefaultAssetBundle.of(context).loadString('worlds/main.world');
-    if (!mounted) return;
+  @override
+  void didUpdateWidget(GamePage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.source != oldWidget.source)
+      _initWorld();
+  }
+
+  void _initWorld() {
+    final WorldSource source = widget.source;
+    source.initWorld().then((World value) {
+      if (mounted && (widget.source == source)) {
+        _world = value;
+        _updateWorldState();
+      }
+    });
+  }
+
+  void _updateWorldState() {
     setState(() {
-      _world = World.parse(data);
+      _currentFrame = WorldState.fromWorld(_world);
     });
   }
 
@@ -50,14 +115,14 @@ class _GamePageState extends State<GamePage> {
         child: CircularProgressIndicator(),
       );
     }
-    return WorldCanvas(world: _world);
+    return WorldCanvas(world: _currentFrame);
   }
 }
 
 class WorldCanvas extends StatefulWidget {
   WorldCanvas({Key key, this.world}) : super(key: key);
 
-  final World world;
+  final WorldState world;
 
   @override
   _WorldCanvasState createState() => _WorldCanvasState();
@@ -75,48 +140,37 @@ class _WorldCanvasState extends State<WorldCanvas> {
 class _WorldPainter extends CustomPainter {
   _WorldPainter(this.world);
 
-  final World world;
+  final WorldState world;
 
   static const Size cellSize = Size(60.0, 60.0);
 
   @override
   void paint(Canvas canvas, Size size) {
     Offset worldOrigin = Offset(
-      size.width / 2.0 - (world.playerX + 0.5) * cellSize.width,
-      size.height / 2.0 - (world.playerY + 0.5) * cellSize.height,
+      size.width / 2.0 - (world.offset.dx) * cellSize.width,
+      size.height / 2.0 - (world.offset.dy) * cellSize.height,
     );
 
     for (int y = 0; y < world.height; y += 1) {
       for (int x = 0; x < world.width; x += 1) {
         paintCell(
-            canvas,
-            cellSize,
-            worldOrigin + Offset(x * cellSize.width, y * cellSize.height),
-            world.at(x, y));
+          canvas,
+          cellSize,
+          worldOrigin + Offset(x * cellSize.width, y * cellSize.height),
+          world.grid[x + y * world.width],
+        );
       }
     }
     paintPerson(canvas, cellSize,
-        size.center(Offset.zero) - cellSize.center(Offset.zero));
-  }
-
-  void paintCell(Canvas canvas, Size cellSize, Offset cellOrigin, Cell cell) {
-    canvas.drawRect(
-      (cellOrigin & cellSize).deflate(2.0),
-      Paint()..color = cell is Goal ? Colors.green : Colors.blue,
+      size.center(Offset.zero) - cellSize.center(Offset.zero),
     );
   }
 
-  Color cellColor(Cell cell) {
-    switch (cell.runtimeType) {
-      case Empty:
-        return Colors.blue;
-      case Goal:
-        return Colors.green;
-      case Tree:
-        return Colors.black;
-      default:
-        throw UnimplementedError("Unknown ${cell.runtimeType}");
-    }
+  void paintCell(Canvas canvas, Size cellSize, Offset cellOrigin, CellState cell) {
+    canvas.drawRect(
+      (cellOrigin & cellSize).deflate(2.0),
+      Paint()..color = cell.color,
+    );
   }
 
   void paintPerson(Canvas canvas, Size cellSize, Offset cellOrigin) {
