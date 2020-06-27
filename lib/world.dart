@@ -1,8 +1,8 @@
 import 'dart:io';
 
 class World {
-  World(this.width, this.cells, this._playerx, this._playery);
-  World.fromHeight(int height, this.cells, this._playerx, this._playery)
+  World(this.width, this.cells, this._playerX, this._playerY);
+  World.fromHeight(int height, this.cells, this._playerX, this._playerY)
       : this.width = cells.length ~/ height;
   final int width;
   int get height {
@@ -13,29 +13,29 @@ class World {
     return cells.length ~/ width;
   }
 
-  int _playerx;
-  int _playery;
-  int get playerx => _playerx;
-  int get playery => _playery;
+  int _playerX;
+  int _playerY;
+  int get playerX => _playerX;
+  int get playerY => _playerY;
 
   void left() {
-    assert(playerx > 0);
-    if (at(playerx - 1, playery).clear) _playerx--;
+    assert(playerX > 0);
+    if (at(playerX - 1, playerY).clear) _playerX--;
   }
 
   void right() {
-    assert(playerx < width - 1);
-    if (at(playerx + 1, playery).clear) _playerx++;
+    assert(playerX < width - 1);
+    if (at(playerX + 1, playerY).clear) _playerX++;
   }
 
   void up() {
-    assert(playery > 0);
-    if (at(playerx, playery - 1).clear) _playery--;
+    assert(playerY > 0);
+    if (at(playerX, playerY - 1).clear) _playerY--;
   }
 
   void down() {
-    assert(playery < height - 1);
-    if (at(playerx, playery + 1).clear) _playerx++;
+    assert(playerY < height - 1);
+    if (at(playerX, playerY + 1).clear) _playerX++;
   }
 
   final List<Cell> cells;
