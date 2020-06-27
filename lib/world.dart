@@ -33,7 +33,7 @@ class World {
 
   void down() {
     assert(playerY < height - 1);
-    if (at(playerX, playerY + 1).clear) _playerX++;
+    if (at(playerX, playerY + 1).clear) _playerY++;
   }
 
   final List<Cell> cells;
