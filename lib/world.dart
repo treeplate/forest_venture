@@ -27,7 +27,9 @@ class World extends ChangeNotifier {
   }
 
   void right() {
-    if (!(playerX < width - 1)) return;
+    if (!(playerX + 1 < width - 1)) return;
+    //print(playerX + 1);
+    //print("is less than ${width - 1}");
     if (at(playerX + 1, playerY).clear) {
       _playerX++;
       notifyListeners();

@@ -50,7 +50,7 @@ class CellState {
       case Goal:
         return CellState(Colors.green);
       case Tree:
-        return CellState(Colors.black);
+        return CellState(Colors.green[200]);
       default:
         throw UnimplementedError("Unknown ${cell.runtimeType}");
     }
@@ -132,28 +132,34 @@ class _GamePageState extends State<GamePage> {
       child: Stack(
         children: <Widget>[
           ClipPath(
-            clipper: PolygonClipper(<Offset>[Offset(0.0, 0.0), Offset(1.0, 0.0), Offset(0.5, 0.5)]),
-            child: Material(
-              type: MaterialType.transparency,
-              child: InkWell(onTap: _world?.up),
-            )
-          ),
+              clipper: PolygonClipper(<Offset>[
+                Offset(0.0, 0.0),
+                Offset(1.0, 0.0),
+                Offset(0.5, 0.5)
+              ]),
+              child: Material(
+                type: MaterialType.transparency,
+                child: InkWell(onTap: _world?.up),
+              )),
           ClipPath(
-            clipper: PolygonClipper(<Offset>[Offset(1.0, 0.0), Offset(1.0, 1.0), Offset(0.5, 0.5)]),
+            clipper: PolygonClipper(
+                <Offset>[Offset(1.0, 0.0), Offset(1.0, 1.0), Offset(0.5, 0.5)]),
             child: Material(
               type: MaterialType.transparency,
               child: InkWell(onTap: _world?.right),
             ),
           ),
           ClipPath(
-            clipper: PolygonClipper(<Offset>[Offset(1.0, 1.0), Offset(0.0, 1.0), Offset(0.5, 0.5)]),
+            clipper: PolygonClipper(
+                <Offset>[Offset(1.0, 1.0), Offset(0.0, 1.0), Offset(0.5, 0.5)]),
             child: Material(
               type: MaterialType.transparency,
               child: InkWell(onTap: _world?.down),
             ),
           ),
           ClipPath(
-            clipper: PolygonClipper(<Offset>[Offset(0.0, 1.0), Offset(0.0, 0.0), Offset(0.5, 0.5)]),
+            clipper: PolygonClipper(
+                <Offset>[Offset(0.0, 1.0), Offset(0.0, 0.0), Offset(0.5, 0.5)]),
             child: Material(
               type: MaterialType.transparency,
               child: InkWell(onTap: _world?.left),
