@@ -1,10 +1,16 @@
 import 'package:flutter/foundation.dart';
 
 class World extends ChangeNotifier {
-  World(this.width, this.cells, this._playerX, this._playerY);
-  World.fromHeight(int height, this.cells, this._playerX, this._playerY)
-      : this.width = cells.length ~/ height;
+  World(this.width, this.cells, this._playerX, this._playerY, this.to) {
+    print("World.to: '$to'");
+  }
+  World.fromHeight(
+      int height, this.cells, this._playerX, this._playerY, this.to)
+      : this.width = cells.length ~/ height {
+    print("World.to fromHeight: '$to'");
+  }
   final int width;
+  final String to;
   int get height {
     assert(cells.length.isFinite);
     assert(width.isFinite);
@@ -61,7 +67,9 @@ class World extends ChangeNotifier {
     List<String> xy = data.first.split(" ");
     int x = int.parse(xy[0]);
     int y = int.parse(xy[1]);
-    for (String line in data.toList()..removeRange(0, 1)) {
+    String to = data[1];
+    print("parse($to)");
+    for (String line in data.toList()..removeRange(0, 2)) {
       cols:
       for (String char in line.split('')) {
         switch (char) {
@@ -83,10 +91,10 @@ class World extends ChangeNotifier {
       }
       height++;
     }
-    return World.fromHeight(height, parsed, x, y);
+    return World.fromHeight(height, parsed, x, y, to);
   }
   String toString() =>
-      "$playerX $playerY\n" + cells.join('').split("null").join("|\n");
+      "$playerX $playerY\n$to\n" + cells.join('').split("null").join("|\n");
   Cell at(int x, int y) => cells[x + (y * width)];
 }
 

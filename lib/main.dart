@@ -15,15 +15,18 @@ class ForestVenture extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Forest Venture',
-      home: GamePage(source: WorldSource()),
+      home: GamePage(source: WorldSource("main")),
     );
   }
 }
 
 @immutable
 class WorldSource {
+  WorldSource(this.name);
+  final String name;
   Future<World> initWorld() async {
-    String data = await rootBundle.loadString('worlds/main.world');
+    print('file is l2: ${name == 'l2'} ($name)');
+    String data = await rootBundle.loadString('worlds/$name.world');
     return World.parse(data);
   }
 }
@@ -108,6 +111,20 @@ class _GamePageState extends State<GamePage> {
     });
   }
 
+  void newWorld(String name) {
+    print("newWorld('$name')");
+    final WorldSource source = WorldSource(name);
+    source.initWorld().then((World value) {
+      if (mounted) {
+        _world?.removeListener(_updateWorldState);
+        _world = value;
+        _world?.addListener(_updateWorldState);
+        print("\nNew World:\n$_world");
+        _updateWorldState();
+      }
+    });
+  }
+
   @override
   void dispose() {
     _world?.removeListener(_updateWorldState);
@@ -115,6 +132,10 @@ class _GamePageState extends State<GamePage> {
   }
 
   void _updateWorldState() {
+    if (_world?.at(_world.playerX, _world.playerY) is Goal) {
+      print("world to: '" + _world.to + "'");
+      newWorld(_world.to);
+    }
     setState(() {
       _currentFrame = _world == null ? null : WorldState.fromWorld(_world);
     });
