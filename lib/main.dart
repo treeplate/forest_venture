@@ -53,13 +53,17 @@ class CellState {
       case Goal:
         return CellState(Colors.green);
       case Tree:
-        return CellState(Colors.green[200]);
+        return TreeCellState();
       default:
         throw UnimplementedError("Unknown ${cell.runtimeType}");
     }
   }
 
   final Color color;
+}
+
+class TreeCellState extends CellState {
+  TreeCellState() : super(Colors.green[200]);
 }
 
 @immutable
@@ -271,6 +275,18 @@ class _WorldPainter extends CustomPainter {
       (cellOrigin & cellSize).deflate(2.0),
       Paint()..color = cell.color,
     );
+    if (cell is TreeCellState) {
+      canvas.drawPath(Path()..addPath(treeShape(cellSize), cellOrigin),
+          Paint()..color = Colors.green);
+    }
+  }
+
+  Path treeShape(Size cellSize) {
+    Path result = Path();
+    result.moveTo(0.5 * cellSize.width, 0);
+    result.lineTo(cellSize.width, cellSize.height);
+    result.lineTo(0, cellSize.height);
+    return result;
   }
 
   void paintPerson(Canvas canvas, Size cellSize, Offset cellOrigin) {
