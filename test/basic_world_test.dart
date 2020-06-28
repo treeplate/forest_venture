@@ -65,6 +65,31 @@ void main() {
       matchesGoldenFile('basic_tree_world.png'),
     );
   });
+  test("Move 2x2 unit tests", () {
+    World world = World.parse("1 1\n...\n  |\n  |");
+    expectPlayerAt(world, 1, 1);
+    world.left();
+    expectPlayerAt(world, 0, 1);
+    world.left();
+    expectPlayerAt(world, 0, 1);
+    world.right();
+    expectPlayerAt(world, 1, 1);
+    world.right();
+    expectPlayerAt(world, 1, 1);
+    world.up();
+    expectPlayerAt(world, 1, 0);
+    world.up();
+    expectPlayerAt(world, 1, 0);
+    world.down();
+    expectPlayerAt(world, 1, 1);
+    world.down();
+    expectPlayerAt(world, 1, 1);
+  });
+}
+
+void expectPlayerAt(World w, int x, int y) {
+  expect(w.playerX, equals(x));
+  expect(w.playerY, equals(y));
 }
 
 @immutable
