@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -54,12 +56,19 @@ class CellState {
         return CellState(Colors.green);
       case Tree:
         return TreeCellState();
+      case OneWay:
+        return CharCellState("$cell");
       default:
         throw UnimplementedError("Unknown ${cell.runtimeType}");
     }
   }
 
   final Color color;
+}
+
+class CharCellState extends CellState {
+  CharCellState(this.str) : super(Colors.red);
+  final String str;
 }
 
 class TreeCellState extends CellState {
@@ -278,6 +287,18 @@ class _WorldPainter extends CustomPainter {
     if (cell is TreeCellState) {
       canvas.drawPath(Path()..addPath(treeShape(cellSize), cellOrigin),
           Paint()..color = Colors.green);
+    }
+    if (cell is CharCellState) {
+      print("Got ${cell.str}");
+      canvas.drawParagraph(
+          (Object t) {
+            print(t);
+            return t;
+          }((ui.ParagraphBuilder(ui.ParagraphStyle(fontSize: 60))
+                ..pushStyle(ui.TextStyle(color: Colors.green))
+                ..addText(cell.str))
+              .build()),
+          cellOrigin);
     }
   }
 

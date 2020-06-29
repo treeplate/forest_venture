@@ -1,11 +1,11 @@
 import 'package:flutter/foundation.dart';
+import 'dart:ui';
 
 class World extends ChangeNotifier {
-  World(this.width, this.cells, this._playerX, this._playerY, this.to) {
+  World(this.width, this.cells, this._playerPos, this.to) {
     print("World.to: '$to'");
   }
-  World.fromHeight(
-      int height, this.cells, this._playerX, this._playerY, this.to)
+  World.fromHeight(int height, this.cells, this._playerPos, this.to)
       : this.width = cells.length ~/ height {
     print("World.to fromHeight: '$to'");
   }
@@ -19,43 +19,46 @@ class World extends ChangeNotifier {
     return cells.length ~/ width;
   }
 
-  int _playerX;
-  int _playerY;
-  int get playerX => _playerX;
-  int get playerY => _playerY;
+  Offset _playerPos;
+  int get playerX => _playerPos.dx.toInt();
+  int get playerY => _playerPos.dy.toInt();
 
   void left() {
-    if (playerX <= 0) return;
-    if (at(playerX - 1, playerY).clear) {
-      _playerX--;
-      notifyListeners();
-    }
+    Offset att = at(playerX - 1, playerY)?.move(
+            Offset((playerX - 1).toDouble(), (playerY).toDouble()),
+            Offset(-1, 0)) ??
+        Offset(-1, 0);
+    _playerPos = isValid(att) ? att : _playerPos;
+    notifyListeners();
   }
 
   void right() {
-    if (!(playerX + 1 < width - 1)) return;
     //print(playerX + 1);
     //print("is less than ${width - 1}");
-    if (at(playerX + 1, playerY).clear) {
-      _playerX++;
-      notifyListeners();
-    }
+    Offset att = at(playerX + 1, playerY)?.move(
+            Offset((playerX + 1).toDouble(), (playerY).toDouble()),
+            Offset(1, 0)) ??
+        Offset(-1, 0);
+    _playerPos = isValid(att) ? att : _playerPos;
+    notifyListeners();
   }
 
   void up() {
-    if (!(playerY > 0)) return;
-    if (at(playerX, playerY - 1).clear) {
-      _playerY--;
-      notifyListeners();
-    }
+    Offset att = at(playerX, playerY - 1)?.move(
+            Offset((playerX).toDouble(), (playerY - 1).toDouble()),
+            Offset(0, -1)) ??
+        Offset(-1, 0);
+    _playerPos = isValid(att) ? att : _playerPos;
+    notifyListeners();
   }
 
   void down() {
-    if (!(playerY < height - 1)) return;
-    if (at(playerX, playerY + 1).clear) {
-      _playerY++;
-      notifyListeners();
-    }
+    Offset att = at(playerX, playerY + 1)?.move(
+            Offset((playerX).toDouble(), (playerY + 1).toDouble()),
+            Offset(0, 1)) ??
+        Offset(-1, 0);
+    _playerPos = isValid(att) ? att : _playerPos;
+    notifyListeners();
   }
 
   final List<Cell> cells;
@@ -82,6 +85,19 @@ class World extends ChangeNotifier {
           case "#":
             parsed.add(Tree());
             break;
+          case ">":
+            parsed.add(OneWay(Offset(1, 0)));
+            break;
+          case "<":
+            parsed.add(OneWay(Offset(-1, 0)));
+            break;
+          case "A":
+          case "∧":
+            parsed.add(OneWay(Offset(0, -1)));
+            break;
+          case "v":
+            parsed.add(OneWay(Offset(0, 1)));
+            break;
           case "|":
             parsed.add(null);
             break cols;
@@ -91,15 +107,29 @@ class World extends ChangeNotifier {
       }
       height++;
     }
-    return World.fromHeight(height, parsed, x, y, to);
+    return World.fromHeight(
+        height, parsed, Offset(x.toDouble(), y.toDouble()), to);
   }
   String toString() =>
       "$playerX $playerY\n$to\n" + cells.join('').split("null").join("|\n");
-  Cell at(int x, int y) => cells[x + (y * width)];
+  Cell at(int x, int y) {
+    try {
+      return cells[x + (y * width)];
+    } on RangeError {
+      return null;
+    }
+  }
+
+  bool isValid(Offset offset) {
+    return offset.dx < width - 1 &&
+        offset.dx >= 0 &&
+        offset.dy < height - 1 &&
+        offset.dy >= 0;
+  }
 }
 
 abstract class Cell {
-  bool get clear => true;
+  Offset move(Offset pos, Offset inDir) => pos;
 }
 
 class Empty extends Cell {
@@ -111,6 +141,20 @@ class Goal extends Cell {
 }
 
 class Tree extends Cell {
-  bool get clear => false;
+  Offset move(Offset pos, Offset inDir) => pos - inDir;
   String toString() => "#";
+}
+
+class OneWay extends Cell {
+  OneWay(this.dir);
+  final Offset dir;
+  String toString() {
+    if (dir == Offset(0, 1)) return "v";
+    if (dir == Offset(0, -1)) return "∧";
+    if (dir == Offset(1, 0)) return ">";
+    if (dir == Offset(1, 0)) return "<";
+    throw UnimplementedError("Unknown direction ($dir)");
+  }
+
+  Offset move(Offset pos, Offset inDir) => pos + dir;
 }

@@ -8,7 +8,8 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
           home: GamePage(
-              source: TestWorldSource(World(1, <Cell>[Empty()], 0, 0, "...")))),
+              source: TestWorldSource(
+                  World(1, <Cell>[Empty()], Offset(0, 0), "...")))),
     );
     await tester.pump();
     await expectLater(
@@ -21,8 +22,8 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
           home: GamePage(
-              source: TestWorldSource(
-                  World(3, <Cell>[Empty(), Empty(), null], 0, 0, '...')))),
+              source: TestWorldSource(World(
+                  3, <Cell>[Empty(), Empty(), null], Offset(0, 0), '...')))),
     );
     await tester.pump();
     await expectLater(
@@ -46,7 +47,7 @@ void main() {
       MaterialApp(
           home: GamePage(
               source: TestWorldSource(
-                  World(2, <Cell>[Empty(), Tree()], 0, 0, "...")))),
+                  World(2, <Cell>[Empty(), Tree()], Offset(0, 0), "...")))),
     );
     await tester.pump();
     await expectLater(
