@@ -1,5 +1,3 @@
-import 'dart:ui' as ui;
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -49,11 +47,11 @@ class CellState {
   factory CellState.fromCell(Cell cell) {
     switch (cell.runtimeType) {
       case Null:
-        return CellState(Colors.black);
+        return CellState(Colors.black.withAlpha(100));
       case Empty:
-        return CellState(Colors.blue);
+        return CellState(Colors.brown.withAlpha(100));
       case Goal:
-        return CellState(Colors.green);
+        return CellState(Colors.green.withAlpha(100));
       case Tree:
         return TreeCellState();
       case OneWay:
@@ -72,7 +70,7 @@ class CharCellState extends CellState {
 }
 
 class TreeCellState extends CellState {
-  TreeCellState() : super(Colors.green[200]);
+  TreeCellState() : super(Colors.green[200].withAlpha(100));
 }
 
 @immutable
@@ -286,19 +284,17 @@ class _WorldPainter extends CustomPainter {
     );
     if (cell is TreeCellState) {
       canvas.drawPath(Path()..addPath(treeShape(cellSize), cellOrigin),
-          Paint()..color = Colors.green);
+          Paint()..color = Colors.green.withAlpha(100));
     }
     if (cell is CharCellState) {
       print("Got ${cell.str}");
-      canvas.drawParagraph(
-          (Object t) {
-            print(t);
-            return t;
-          }((ui.ParagraphBuilder(ui.ParagraphStyle(fontSize: 60))
-                ..pushStyle(ui.TextStyle(color: Colors.green))
-                ..addText(cell.str))
-              .build()),
-          cellOrigin);
+      TextPainter(
+          text: TextSpan(
+              text: cell.str,
+              style: TextStyle(fontSize: cellSize.shortestSide, height: 1)),
+          textDirection: TextDirection.ltr)
+        ..layout()
+        ..paint(canvas, cellOrigin);
     }
   }
 

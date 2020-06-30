@@ -123,7 +123,7 @@ class World extends ChangeNotifier {
   bool isValid(Offset offset) {
     return offset.dx < width - 1 &&
         offset.dx >= 0 &&
-        offset.dy < height - 1 &&
+        offset.dy < height &&
         offset.dy >= 0;
   }
 }
