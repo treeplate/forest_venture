@@ -25,7 +25,7 @@ class WorldSource {
   WorldSource(this.name);
   final String name;
   Future<World> initWorld() async {
-    print('file is l2: ${name == 'l2'} ($name)');
+    //print('file is l2: ${name == 'l2'} ($name)');
     String data = await rootBundle.loadString('worlds/$name.world');
     return World.parse(data);
   }
@@ -123,14 +123,14 @@ class _GamePageState extends State<GamePage> {
   }
 
   void newWorld(String name) {
-    print("newWorld('$name')");
+    //print("newWorld('$name')");
     final WorldSource source = WorldSource(name);
     source.initWorld().then((World value) {
       if (mounted) {
         _world?.removeListener(_updateWorldState);
         _world = value;
         _world?.addListener(_updateWorldState);
-        print("\nNew World:\n$_world");
+        //print("\nNew World:\n$_world");
         _updateWorldState();
       }
     });
@@ -144,7 +144,7 @@ class _GamePageState extends State<GamePage> {
 
   void _updateWorldState() {
     if (_world?.at(_world.playerX, _world.playerY) is Goal) {
-      print("world to: '" + _world.to + "'");
+      //print("world to: '" + _world.to + "'");
       newWorld(_world.to);
     }
     setState(() {
@@ -287,7 +287,7 @@ class _WorldPainter extends CustomPainter {
           Paint()..color = Colors.green.withAlpha(100));
     }
     if (cell is CharCellState) {
-      print("Got ${cell.str}");
+      //print("Got ${cell.str}");
       TextPainter(
           text: TextSpan(
               text: cell.str,

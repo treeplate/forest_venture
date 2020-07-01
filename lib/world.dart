@@ -3,11 +3,11 @@ import 'dart:ui';
 
 class World extends ChangeNotifier {
   World(this.width, this.cells, this._playerPos, this.to) {
-    print("World.to: '$to'");
+    //print("World.to: '$to'");
   }
   World.fromHeight(int height, this.cells, this._playerPos, this.to)
       : this.width = cells.length ~/ height {
-    print("World.to fromHeight: '$to'");
+    //print("World.to fromHeight: '$to'");
   }
   final int width;
   final String to;
@@ -71,7 +71,7 @@ class World extends ChangeNotifier {
     int x = int.parse(xy[0]);
     int y = int.parse(xy[1]);
     String to = data[1];
-    print("parse($to)");
+    //print("parse($to)");
     for (String line in data.toList()..removeRange(0, 2)) {
       cols:
       for (String char in line.split('')) {
@@ -152,8 +152,9 @@ class OneWay extends Cell {
     if (dir == Offset(0, 1)) return "v";
     if (dir == Offset(0, -1)) return "∧";
     if (dir == Offset(1, 0)) return ">";
-    if (dir == Offset(1, 0)) return "<";
-    throw UnimplementedError("Unknown direction ($dir)");
+    if (dir == Offset(-1, 0)) return "<";
+    throw UnimplementedError(
+        "Unknown direction ($dir) == Offset(-1, 0) ${dir == Offset(-1, 0)}");
   }
 
   Offset move(Offset pos, Offset inDir) => pos + dir;
