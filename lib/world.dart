@@ -24,41 +24,32 @@ class World extends ChangeNotifier {
   int get playerY => _playerPos.dy.toInt();
 
   void left() {
-    Offset att = at(playerX - 1, playerY)?.move(
-            Offset((playerX - 1).toDouble(), (playerY).toDouble()),
-            Offset(-1, 0)) ??
-        Offset(-1, 0);
-    _playerPos = isValid(att) ? att : _playerPos;
-    notifyListeners();
-  }
-
-  void right() {
-    //print(playerX + 1);
-    //print("is less than ${width - 1}");
-    Offset att = at(playerX + 1, playerY)?.move(
-            Offset((playerX + 1).toDouble(), (playerY).toDouble()),
-            Offset(1, 0)) ??
-        Offset(-1, 0);
-    _playerPos = isValid(att) ? att : _playerPos;
-    notifyListeners();
+    move(Offset(-1, 0));
   }
 
   void up() {
-    Offset att = at(playerX, playerY - 1)?.move(
-            Offset((playerX).toDouble(), (playerY - 1).toDouble()),
-            Offset(0, -1)) ??
+    move(Offset(0, -1));
+  }
+
+  void right() {
+    move(Offset(1, 0));
+  }
+
+  void move(Offset dir) {
+    Offset att = atOffset(_playerPos + dir)?.move(_playerPos + dir, dir) ??
         Offset(-1, 0);
+    Offset oldPos = _playerPos;
     _playerPos = isValid(att) ? att : _playerPos;
     notifyListeners();
+    Future.delayed(Duration(milliseconds: 500)).then((dynamic _) {
+      if (!(atOffset(att) is Empty || atOffset(att) is Goal)) {
+        move(att - oldPos);
+      }
+    });
   }
 
   void down() {
-    Offset att = at(playerX, playerY + 1)?.move(
-            Offset((playerX).toDouble(), (playerY + 1).toDouble()),
-            Offset(0, 1)) ??
-        Offset(-1, 0);
-    _playerPos = isValid(att) ? att : _playerPos;
-    notifyListeners();
+    move(Offset(0, 1));
   }
 
   final List<Cell> cells;
@@ -119,6 +110,8 @@ class World extends ChangeNotifier {
       return null;
     }
   }
+
+  Cell atOffset(Offset att) => at(att.dx.toInt(), att.dy.toInt());
 
   bool isValid(Offset offset) {
     return offset.dx < width - 1 &&
