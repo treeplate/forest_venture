@@ -1,14 +1,49 @@
 import 'package:flutter/foundation.dart';
 import 'dart:ui';
 
+typedef DataLoader = Future<String> Function(String name);
+
+class WorldSource extends ChangeNotifier {
+  WorldSource(this.loader) {
+    initWorld('main');
+  }
+
+  final DataLoader loader;
+
+  World _currentWorld;
+  World get currentWorld => _currentWorld;
+
+  bool _disposed = false;
+
+  Future<void> initWorld(String newName) async {
+    assert(!_disposed);
+    _currentWorld = null;
+    notifyListeners();
+    final String data = await loader(newName);
+    if (!_disposed) {
+      _currentWorld = World.parse(data, this);
+      notifyListeners();
+    }
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+}
+
 class World extends ChangeNotifier {
-  World(this.width, this.cells, this._playerPos, this.to) {
+  World(this.width, this.cells, this._playerPos, this.to, this.worldSource) {
     //print("World.to: '$to'");
   }
-  World.fromHeight(int height, this.cells, this._playerPos, this.to)
+  World.fromHeight(int height, this.cells, this._playerPos, this.to, this.worldSource)
       : this.width = cells.length ~/ height {
     //print("World.to fromHeight: '$to'");
   }
+
+  final WorldSource worldSource;
+
   final int width;
   final String to;
   int get height {
@@ -46,7 +81,9 @@ class World extends ChangeNotifier {
     print("$indent  move valid: ${isValid(att)}");
     _playerPos = isValid(att) ? att : _playerPos;
     notifyListeners();
-    if (atOffset(_playerPos) is! Empty && atOffset(_playerPos) is! Goal) {
+    if (atOffset(_playerPos) is Goal) {
+      worldSource.initWorld(to);
+    } else if (atOffset(_playerPos) is! Empty) {
       print("$indent  hu ($_playerPos - $oldPos)");
       move(_playerPos - oldPos, indent + "  ");
     }
@@ -59,7 +96,7 @@ class World extends ChangeNotifier {
 
   final List<Cell> cells;
 
-  factory World.parse(String rawData) {
+  factory World.parse(String rawData, WorldSource source) {
     List<String> data = rawData.split('\n');
     List<Cell> parsed = [];
     int height = 0;
@@ -105,7 +142,7 @@ class World extends ChangeNotifier {
       height++;
     }
     return World.fromHeight(
-        height, parsed, Offset(x.toDouble(), y.toDouble()), to);
+        height, parsed, Offset(x.toDouble(), y.toDouble()), to, source,);
   }
   String toString() =>
       "$playerX $playerY\n$to\n" + cells.join('').split("null").join("|\n");

@@ -4,30 +4,25 @@ import 'package:flutter/services.dart';
 
 import 'world.dart';
 
+Future<String> loader(String name) => rootBundle.loadString('worlds/$name.world');
+
 void main() {
-  runApp(ForestVenture());
+  WidgetsFlutterBinding.ensureInitialized();
+  WorldSource source = WorldSource(loader);
+  runApp(ForestVenture(source: source));
 }
 
 class ForestVenture extends StatelessWidget {
-  ForestVenture({Key key}) : super(key: key);
+  ForestVenture({Key key, this.source}) : super(key: key);
+
+  final WorldSource source;
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Forest Venture',
-      home: GamePage(source: WorldSource("main")),
+      home: GamePage(source: source),
     );
-  }
-}
-
-@immutable
-class WorldSource {
-  WorldSource(this.name);
-  final String name;
-  Future<World> initWorld() async {
-    //print('file is l2: ${name == 'l2'} ($name)');
-    String data = await rootBundle.loadString('worlds/$name.world');
-    return World.parse(data);
   }
 }
 
@@ -95,58 +90,40 @@ class WorldState {
 
 class _GamePageState extends State<GamePage> {
   World _world;
-
   WorldState _currentFrame;
 
   @override
   void initState() {
     super.initState();
-    _initWorld();
+    widget.source.addListener(_handleSourceUpdate);
+    _handleSourceUpdate();
   }
 
   @override
   void didUpdateWidget(GamePage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.source != oldWidget.source) _initWorld();
-  }
-
-  void _initWorld() {
-    final WorldSource source = widget.source;
-    source.initWorld().then((World value) {
-      if (mounted && (widget.source == source)) {
-        _world?.removeListener(_updateWorldState);
-        _world = value;
-        _world?.addListener(_updateWorldState);
-        _updateWorldState();
-      }
-    });
-  }
-
-  void newWorld(String name) {
-    //print("newWorld('$name')");
-    final WorldSource source = WorldSource(name);
-    source.initWorld().then((World value) {
-      if (mounted) {
-        _world?.removeListener(_updateWorldState);
-        _world = value;
-        _world?.addListener(_updateWorldState);
-        //print("\nNew World:\n$_world");
-        _updateWorldState();
-      }
-    });
+    if (widget.source != oldWidget.source) {
+      oldWidget.source.removeListener(_handleSourceUpdate);
+      widget.source.addListener(_handleSourceUpdate);
+      _handleSourceUpdate();
+    }
   }
 
   @override
   void dispose() {
-    _world?.removeListener(_updateWorldState);
+    widget.source.removeListener(_handleSourceUpdate);
+    _world?.removeListener(_handleWorldUpdate);
     super.dispose();
   }
 
-  void _updateWorldState() {
-    if (_world?.at(_world.playerX, _world.playerY) is Goal) {
-      //print("world to: '" + _world.to + "'");
-      newWorld(_world.to);
-    }
+  void _handleSourceUpdate() {
+    _world?.removeListener(_handleWorldUpdate);
+    _world = widget.source.currentWorld;
+    _world?.addListener(_handleWorldUpdate);
+    _handleWorldUpdate();
+  }
+
+  void _handleWorldUpdate() {
     setState(() {
       _currentFrame = _world == null ? null : WorldState.fromWorld(_world);
     });
@@ -175,7 +152,7 @@ class _GamePageState extends State<GamePage> {
               )),
           ClipPath(
             clipper: PolygonClipper(
-                <Offset>[Offset(1.0, 0.0), Offset(1.0, 1.0), Offset(0.5, 0.5)]),
+                <Offset>[Offset(1.0, 0.0), Offset(1.0, 1.0), Offset(0.5, 0.5),]),
             child: Material(
               type: MaterialType.transparency,
               child: InkWell(onTap: _world?.right),
@@ -183,7 +160,7 @@ class _GamePageState extends State<GamePage> {
           ),
           ClipPath(
             clipper: PolygonClipper(
-                <Offset>[Offset(1.0, 1.0), Offset(0.0, 1.0), Offset(0.5, 0.5)]),
+                <Offset>[Offset(1.0, 1.0), Offset(0.0, 1.0), Offset(0.5, 0.5),]),
             child: Material(
               type: MaterialType.transparency,
               child: InkWell(onTap: _world?.down),
@@ -191,7 +168,7 @@ class _GamePageState extends State<GamePage> {
           ),
           ClipPath(
             clipper: PolygonClipper(
-                <Offset>[Offset(0.0, 1.0), Offset(0.0, 0.0), Offset(0.5, 0.5)]),
+                <Offset>[Offset(0.0, 1.0), Offset(0.0, 0.0), Offset(0.5, 0.5),]),
             child: Material(
               type: MaterialType.transparency,
               child: InkWell(onTap: _world?.left),
