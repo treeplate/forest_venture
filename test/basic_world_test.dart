@@ -1,15 +1,30 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forest_venture/main.dart';
 import 'package:forest_venture/world.dart';
 
+const String _emptyWorld = '0 0\n'
+  '...\n'
+  ' ';
+
+const String _lineWorld = '0 0\n'
+  '...\n'
+  '  |';
+
+const String _treeWorld = '0 0\n'
+  '...\n'
+  ' #';
+
 void main() {
   testWidgets('Most basic world', (WidgetTester tester) async {
     await tester.pumpWidget(
       MaterialApp(
-          home: GamePage(
-              source: TestWorldSource(
-                  World(1, <Cell>[Empty()], Offset(0, 0), "...")))),
+        home: GamePage(
+          source: TestWorldSource(_emptyWorld),
+        ),
+      ),
     );
     await tester.pump();
     await expectLater(
@@ -21,9 +36,10 @@ void main() {
   testWidgets('Movement', (WidgetTester tester) async {
     await tester.pumpWidget(
       MaterialApp(
-          home: GamePage(
-              source: TestWorldSource(World(
-                  3, <Cell>[Empty(), Empty(), null], Offset(0, 0), '...')))),
+        home: GamePage(
+          source: TestWorldSource(_lineWorld),
+        ),
+      ),
     );
     await tester.pump();
     await expectLater(
@@ -42,12 +58,14 @@ void main() {
       matchesGoldenFile('basic_world_move_after.png'),
     );
   });
+
   testWidgets('Tree world', (WidgetTester tester) async {
     await tester.pumpWidget(
       MaterialApp(
-          home: GamePage(
-              source: TestWorldSource(
-                  World(2, <Cell>[Empty(), Tree()], Offset(0, 0), "...")))),
+        home: GamePage(
+          source: TestWorldSource(_treeWorld),
+        ),
+      ),
     );
     await tester.pump();
     await expectLater(
@@ -66,8 +84,16 @@ void main() {
       matchesGoldenFile('basic_tree_world.png'),
     );
   });
-  test("Move 2x2 unit tests", () {
-    World world = World.parse("1 1\n...\n  |\n  |");
+
+  testWidgets('Move 2x2 unit tests', (WidgetTester tester) async {
+    final WorldSource source = TestWorldSource("1 1\n...\n  |\n  |");
+    World world;
+    Completer<void> completer = Completer<void>();
+    source.addListener(() {
+      world = source.currentWorld;
+      completer.complete();
+    });
+    await completer.future;
     expectPlayerAt(world, 1, 1);
     world.left();
     expectPlayerAt(world, 0, 1);
@@ -93,12 +119,7 @@ void expectPlayerAt(World w, int x, int y) {
   expect(w.playerY, equals(y));
 }
 
-@immutable
-class TestWorldSource implements WorldSource {
-  TestWorldSource(this.world);
-  final World world;
-  final String name = null;
-  Future<World> initWorld() async {
-    return world;
-  }
+class TestWorldSource extends WorldSource {
+  TestWorldSource(String data) : super((String name) async => data);
+  TestWorldSource.empty() : super(null);
 }
