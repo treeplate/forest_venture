@@ -37,7 +37,7 @@ class GamePage extends StatefulWidget {
 
 @immutable
 class CellState {
-  const CellState(this.color);
+  const CellState(this.backgroundColor);
 
   factory CellState.fromCell(Cell cell) {
     switch (cell.runtimeType) {
@@ -56,16 +56,55 @@ class CellState {
     }
   }
 
-  final Color color;
+  final Color backgroundColor;
+
+  @mustCallSuper
+  void paint(Canvas canvas, Size cellSize, Offset cellOrigin) {
+    canvas.drawRect(
+      (cellOrigin & cellSize).deflate(2.0),
+      Paint()..color = backgroundColor,
+    );
+  }
 }
 
 class CharCellState extends CellState {
-  CharCellState(this.str) : super(Colors.red);
-  final String str;
+  CharCellState(this.label) : super(Colors.red);
+  final String label;
+
+  @override
+  void paint(Canvas canvas, Size cellSize, Offset cellOrigin) {
+    super.paint(canvas, cellSize, cellOrigin);
+    // TODO(ianh): Cache the TextPainter.
+    TextPainter(
+      text: TextSpan(
+        text: label,
+        style: TextStyle(fontSize: cellSize.shortestSide, height: 1),
+      ),
+      textDirection: TextDirection.ltr,
+    )
+    ..layout()
+    ..paint(canvas, cellOrigin);
+  }
 }
 
 class TreeCellState extends CellState {
   TreeCellState() : super(Colors.green[200].withAlpha(50));
+
+  @override
+  void paint(Canvas canvas, Size cellSize, Offset cellOrigin) {
+    super.paint(canvas, cellSize, cellOrigin);
+    canvas.drawPath(
+      Path()..addPath(_treeShape(cellSize), cellOrigin),
+      Paint()..color = Colors.green.withAlpha(50),
+    );
+  }
+
+  static Path _treeShape(Size cellSize) {
+    return Path()
+      ..moveTo(0.5 * cellSize.width, 0)
+      ..lineTo(cellSize.width, cellSize.height)
+      ..lineTo(0, cellSize.height);
+  }
 }
 
 @immutable
@@ -238,11 +277,10 @@ class _WorldPainter extends CustomPainter {
 
     for (int y = 0; y < world.height; y += 1) {
       for (int x = 0; x < world.width; x += 1) {
-        paintCell(
+        world.grid[x + y * world.width].paint(
           canvas,
           cellSize,
           worldOrigin + Offset(x * cellSize.width, y * cellSize.height),
-          world.grid[x + y * world.width],
         );
       }
     }
@@ -251,36 +289,6 @@ class _WorldPainter extends CustomPainter {
       cellSize,
       size.center(Offset.zero) - cellSize.center(Offset.zero),
     );
-  }
-
-  void paintCell(
-      Canvas canvas, Size cellSize, Offset cellOrigin, CellState cell) {
-    canvas.drawRect(
-      (cellOrigin & cellSize).deflate(2.0),
-      Paint()..color = cell.color,
-    );
-    if (cell is TreeCellState) {
-      canvas.drawPath(Path()..addPath(treeShape(cellSize), cellOrigin),
-          Paint()..color = Colors.green.withAlpha(50));
-    }
-    if (cell is CharCellState) {
-      //print("Got ${cell.str}");
-      TextPainter(
-          text: TextSpan(
-              text: cell.str,
-              style: TextStyle(fontSize: cellSize.shortestSide, height: 1)),
-          textDirection: TextDirection.ltr)
-        ..layout()
-        ..paint(canvas, cellOrigin);
-    }
-  }
-
-  Path treeShape(Size cellSize) {
-    Path result = Path();
-    result.moveTo(0.5 * cellSize.width, 0);
-    result.lineTo(cellSize.width, cellSize.height);
-    result.lineTo(0, cellSize.height);
-    return result;
   }
 
   void paintPerson(Canvas canvas, Size cellSize, Offset cellOrigin) {
