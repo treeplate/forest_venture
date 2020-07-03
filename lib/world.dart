@@ -35,17 +35,22 @@ class World extends ChangeNotifier {
     move(Offset(1, 0));
   }
 
-  void move(Offset dir) {
+  int x = 0;
+  int y = 0;
+  void move(Offset dir, [String indent = ""]) {
+    print(indent + "move {");
+    print("$indent  move $dir");
     Offset att = atOffset(_playerPos + dir)?.move(_playerPos + dir, dir) ??
         Offset(-1, 0);
     Offset oldPos = _playerPos;
+    print("$indent  move valid: ${isValid(att)}");
     _playerPos = isValid(att) ? att : _playerPos;
     notifyListeners();
-    Future.delayed(Duration(milliseconds: 500)).then((dynamic _) {
-      if (!(atOffset(att) is Empty || atOffset(att) is Goal)) {
-        move(att - oldPos);
-      }
-    });
+    if (atOffset(_playerPos) is! Empty && atOffset(_playerPos) is! Goal) {
+      print("$indent  hu ($_playerPos - $oldPos)");
+      move(_playerPos - oldPos, indent + "  ");
+    }
+    print("$indent}");
   }
 
   void down() {
@@ -93,7 +98,8 @@ class World extends ChangeNotifier {
             parsed.add(null);
             break cols;
           default:
-            throw FormatException("Unexpected \"$char\" while parsing world");
+            throw FormatException(
+                "Unexpected \"$char\"(${char.runes.first}) while parsing world");
         }
       }
       height++;

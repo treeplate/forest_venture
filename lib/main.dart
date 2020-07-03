@@ -47,11 +47,11 @@ class CellState {
   factory CellState.fromCell(Cell cell) {
     switch (cell.runtimeType) {
       case Null:
-        return CellState(Colors.black.withAlpha(100));
+        return CellState(Colors.black.withAlpha(50));
       case Empty:
-        return CellState(Colors.brown.withAlpha(100));
+        return CellState(Colors.brown.withAlpha(50));
       case Goal:
-        return CellState(Colors.green.withAlpha(100));
+        return CellState(Colors.green);
       case Tree:
         return TreeCellState();
       case OneWay:
@@ -70,7 +70,7 @@ class CharCellState extends CellState {
 }
 
 class TreeCellState extends CellState {
-  TreeCellState() : super(Colors.green[200].withAlpha(100));
+  TreeCellState() : super(Colors.green[200].withAlpha(50));
 }
 
 @immutable
@@ -284,7 +284,7 @@ class _WorldPainter extends CustomPainter {
     );
     if (cell is TreeCellState) {
       canvas.drawPath(Path()..addPath(treeShape(cellSize), cellOrigin),
-          Paint()..color = Colors.green.withAlpha(100));
+          Paint()..color = Colors.green.withAlpha(50));
     }
     if (cell is CharCellState) {
       //print("Got ${cell.str}");
