@@ -37,7 +37,8 @@ class World extends ChangeNotifier {
   World(this.width, this.cells, this._playerPos, this.to, this.worldSource) {
     //print("World.to: '$to'");
   }
-  World.fromHeight(int height, this.cells, this._playerPos, this.to, this.worldSource)
+  World.fromHeight(
+      int height, this.cells, this._playerPos, this.to, this.worldSource)
       : this.width = cells.length ~/ height {
     //print("World.to fromHeight: '$to'");
   }
@@ -73,19 +74,27 @@ class World extends ChangeNotifier {
   int x = 0;
   int y = 0;
   void move(Offset dir, [String indent = ""]) {
+    assert(
+        dir == Offset(0, 1) ||
+            dir == Offset(0, -1) ||
+            dir == Offset(1, 0) ||
+            dir == Offset(-1, 0),
+        "is $dir");
     print(indent + "move {");
     print("$indent  move $dir");
-    Offset att = atOffset(_playerPos + dir)?.move(_playerPos + dir, dir) ??
-        Offset(-1, 0);
+    MoveResult att = atOffset(_playerPos + dir)?.move(_playerPos + dir, dir) ??
+        MoveResult(Offset(0, 0), Offset(-1, 0));
     Offset oldPos = _playerPos;
-    print("$indent  move valid: ${isValid(att)}");
-    _playerPos = isValid(att) ? att : _playerPos;
+    print("$indent  move valid: ${isValid(att.newPos)}");
+    _playerPos = isValid(att.newPos) ? att.newPos : _playerPos;
     notifyListeners();
     if (atOffset(_playerPos) is Goal) {
       worldSource.initWorld(to);
     } else if (atOffset(_playerPos) is! Empty) {
       print("$indent  hu ($_playerPos - $oldPos)");
-      move(_playerPos - oldPos, indent + "  ");
+      print("$indent  $dir");
+      if (_playerPos == oldPos) return;
+      move(att.dir, indent + "  ");
     }
     print("$indent}");
   }
@@ -142,7 +151,12 @@ class World extends ChangeNotifier {
       height++;
     }
     return World.fromHeight(
-        height, parsed, Offset(x.toDouble(), y.toDouble()), to, source,);
+      height,
+      parsed,
+      Offset(x.toDouble(), y.toDouble()),
+      to,
+      source,
+    );
   }
   String toString() =>
       "$playerX $playerY\n$to\n" + cells.join('').split("null").join("|\n");
@@ -165,7 +179,7 @@ class World extends ChangeNotifier {
 }
 
 abstract class Cell {
-  Offset move(Offset pos, Offset inDir) => pos;
+  MoveResult move(Offset pos, Offset inDir) => MoveResult(inDir, pos);
 }
 
 class Empty extends Cell {
@@ -177,7 +191,7 @@ class Goal extends Cell {
 }
 
 class Tree extends Cell {
-  Offset move(Offset pos, Offset inDir) => pos - inDir;
+  MoveResult move(Offset pos, Offset inDir) => MoveResult(-inDir, pos - inDir);
   String toString() => "#";
 }
 
@@ -193,5 +207,14 @@ class OneWay extends Cell {
         "Unknown direction ($dir) == Offset(-1, 0) ${dir == Offset(-1, 0)}");
   }
 
-  Offset move(Offset pos, Offset inDir) => pos + dir;
+  MoveResult move(Offset pos, Offset inDir) {
+    print("$dir");
+    return MoveResult(dir, pos + dir);
+  }
+}
+
+class MoveResult {
+  MoveResult(this.dir, this.newPos);
+  final Offset dir;
+  final Offset newPos;
 }

@@ -4,7 +4,8 @@ import 'package:flutter/services.dart';
 
 import 'world.dart';
 
-Future<String> loader(String name) => rootBundle.loadString('worlds/$name.world');
+Future<String> loader(String name) =>
+    rootBundle.loadString('worlds/$name.world');
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,7 +15,6 @@ void main() {
 
 class ForestVenture extends StatelessWidget {
   ForestVenture({Key key, this.source}) : super(key: key);
-
   final WorldSource source;
 
   @override
@@ -38,7 +38,6 @@ class GamePage extends StatefulWidget {
 @immutable
 class CellState {
   const CellState(this.backgroundColor);
-
   factory CellState.fromCell(Cell cell) {
     switch (cell.runtimeType) {
       case Null:
@@ -82,8 +81,8 @@ class CharCellState extends CellState {
       ),
       textDirection: TextDirection.ltr,
     )
-    ..layout()
-    ..paint(canvas, cellOrigin);
+      ..layout()
+      ..paint(canvas, cellOrigin);
   }
 }
 
@@ -190,24 +189,33 @@ class _GamePageState extends State<GamePage> {
                 child: InkWell(onTap: _world?.up),
               )),
           ClipPath(
-            clipper: PolygonClipper(
-                <Offset>[Offset(1.0, 0.0), Offset(1.0, 1.0), Offset(0.5, 0.5),]),
+            clipper: PolygonClipper(<Offset>[
+              Offset(1.0, 0.0),
+              Offset(1.0, 1.0),
+              Offset(0.5, 0.5),
+            ]),
             child: Material(
               type: MaterialType.transparency,
               child: InkWell(onTap: _world?.right),
             ),
           ),
           ClipPath(
-            clipper: PolygonClipper(
-                <Offset>[Offset(1.0, 1.0), Offset(0.0, 1.0), Offset(0.5, 0.5),]),
+            clipper: PolygonClipper(<Offset>[
+              Offset(1.0, 1.0),
+              Offset(0.0, 1.0),
+              Offset(0.5, 0.5),
+            ]),
             child: Material(
               type: MaterialType.transparency,
               child: InkWell(onTap: _world?.down),
             ),
           ),
           ClipPath(
-            clipper: PolygonClipper(
-                <Offset>[Offset(0.0, 1.0), Offset(0.0, 0.0), Offset(0.5, 0.5),]),
+            clipper: PolygonClipper(<Offset>[
+              Offset(0.0, 1.0),
+              Offset(0.0, 0.0),
+              Offset(0.5, 0.5),
+            ]),
             child: Material(
               type: MaterialType.transparency,
               child: InkWell(onTap: _world?.left),

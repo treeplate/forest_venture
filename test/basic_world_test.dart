@@ -6,16 +6,16 @@ import 'package:forest_venture/main.dart';
 import 'package:forest_venture/world.dart';
 
 const String _emptyWorld = '0 0\n'
-  '...\n'
-  ' ';
+    '...\n'
+    ' ';
 
 const String _lineWorld = '0 0\n'
-  '...\n'
-  '  |';
+    '...\n'
+    '  |';
 
 const String _treeWorld = '0 0\n'
-  '...\n'
-  ' #';
+    '...\n'
+    ' #';
 
 void main() {
   testWidgets('Most basic world', (WidgetTester tester) async {
