@@ -124,7 +124,7 @@ class World extends ChangeNotifier {
           case "G":
             parsed.add(Goal());
             break;
-          case "#":
+          case "T":
             parsed.add(Tree());
             break;
           case ">":

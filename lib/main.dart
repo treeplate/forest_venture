@@ -67,7 +67,7 @@ class CellState {
 }
 
 class CharCellState extends CellState {
-  CharCellState(this.label) : super(Colors.red);
+  CharCellState(this.label) : super(Colors.brown.withAlpha(50));
   final String label;
 
   @override
@@ -76,9 +76,12 @@ class CharCellState extends CellState {
     // TODO(ianh): Cache the TextPainter.
     TextPainter(
       text: TextSpan(
-        text: label,
-        style: TextStyle(fontSize: cellSize.shortestSide, height: 1),
-      ),
+          text: label,
+          style: TextStyle(
+            fontSize: cellSize.shortestSide,
+            height: 1,
+            color: Color(0xFF8B4513),
+          )),
       textDirection: TextDirection.ltr,
     )
       ..layout()
