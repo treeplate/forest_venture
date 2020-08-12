@@ -15,7 +15,7 @@ const String _lineWorld = '0 0\n'
 
 const String _treeWorld = '0 0\n'
     '...\n'
-    ' #';
+    ' T';
 
 void main() {
   testWidgets('Most basic world', (WidgetTester tester) async {

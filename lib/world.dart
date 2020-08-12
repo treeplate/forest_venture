@@ -73,30 +73,24 @@ class World extends ChangeNotifier {
 
   int x = 0;
   int y = 0;
-  void move(Offset dir, [String indent = ""]) {
+  void move(Offset dir) {
     assert(
         dir == Offset(0, 1) ||
             dir == Offset(0, -1) ||
             dir == Offset(1, 0) ||
             dir == Offset(-1, 0),
         "is $dir");
-    print(indent + "move {");
-    print("$indent  move $dir");
     MoveResult att = atOffset(_playerPos + dir)?.move(_playerPos + dir, dir) ??
         MoveResult(Offset(0, 0), Offset(-1, 0));
     Offset oldPos = _playerPos;
-    print("$indent  move valid: ${isValid(att.newPos)}");
     _playerPos = isValid(att.newPos) ? att.newPos : _playerPos;
     notifyListeners();
     if (atOffset(_playerPos) is Goal) {
       worldSource.initWorld(to);
     } else if (atOffset(_playerPos) is! Empty) {
-      print("$indent  hu ($_playerPos - $oldPos)");
-      print("$indent  $dir");
       if (_playerPos == oldPos) return;
-      move(att.dir, indent + "  ");
+      move(att.dir);
     }
-    print("$indent}");
   }
 
   void down() {
