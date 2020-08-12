@@ -202,7 +202,6 @@ class OneWay extends Cell {
   }
 
   MoveResult move(Offset pos, Offset inDir) {
-    print("$dir");
     return MoveResult(dir, pos + dir);
   }
 }
