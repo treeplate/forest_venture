@@ -7,14 +7,17 @@ import 'package:forest_venture/world.dart';
 
 const String _emptyWorld = '0 0\n'
     '...\n'
+    'empty\n'
     ' ';
 
 const String _lineWorld = '0 0\n'
     '...\n'
+    'line\n'
     '  |';
 
 const String _treeWorld = '0 0\n'
     '...\n'
+    'tree\n'
     ' T';
 
 void main() {
