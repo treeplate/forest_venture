@@ -34,17 +34,19 @@ class WorldSource extends ChangeNotifier {
 }
 
 class World extends ChangeNotifier {
-  World(this.width, this.cells, this._playerPos, this.to, this.worldSource) {
+  World(this.width, this.cells, this._playerPos, this.to, this.worldSource,
+      this.name) {
     //print("World.to: '$to'");
   }
-  World.fromHeight(
-      int height, this.cells, this._playerPos, this.to, this.worldSource)
+  World.fromHeight(int height, this.cells, this._playerPos, this.to,
+      this.worldSource, this.name)
       : this.width = cells.length ~/ height {
     //print("World.to fromHeight: '$to'");
   }
 
   final WorldSource worldSource;
 
+  final String name;
   final int width;
   final String to;
   int get height {
@@ -107,8 +109,9 @@ class World extends ChangeNotifier {
     int x = int.parse(xy[0]);
     int y = int.parse(xy[1]);
     String to = data[1];
+    String name = data[2];
     //print("parse($to)");
-    for (String line in data.toList()..removeRange(0, 2)) {
+    for (String line in data.toList()..removeRange(0, 3)) {
       cols:
       for (String char in line.split('')) {
         switch (char) {
@@ -150,6 +153,7 @@ class World extends ChangeNotifier {
       Offset(x.toDouble(), y.toDouble()),
       to,
       source,
+      name,
     );
   }
   String toString() =>
