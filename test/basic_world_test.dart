@@ -94,7 +94,7 @@ void main() {
   });
 
   testWidgets('Move 2x2 unit tests', (WidgetTester tester) async {
-    final WorldSource source = TestWorldSource("1 1\n...\n  |\n  |");
+    final WorldSource source = TestWorldSource("1 1\n...\nmunit\n  |\n  |");
     World world;
     Completer<void> completer = Completer<void>();
     source.addListener(() {
