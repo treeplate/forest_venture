@@ -55,6 +55,11 @@ void main() {
     await tester.pump();
     await expectLater(
       find.byType(WorldCanvas),
+      matchesGoldenFile('basic_world_move_before.png'),
+    );
+    await tester.pump(const Duration(seconds: 1));
+    await expectLater(
+      find.byType(WorldCanvas),
       matchesGoldenFile('basic_world_move_after.png'),
     );
   });
