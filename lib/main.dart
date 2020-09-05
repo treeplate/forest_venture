@@ -26,15 +26,6 @@ class ForestVenture extends StatelessWidget {
   }
 }
 
-class GamePage extends StatefulWidget {
-  GamePage({Key key, this.source}) : super(key: key);
-
-  final WorldSource source;
-
-  @override
-  _GamePageState createState() => _GamePageState();
-}
-
 @immutable
 class CellState {
   const CellState(this.backgroundColor);
@@ -127,6 +118,71 @@ class WorldState {
   int get height => grid.length ~/ width;
   final List<CellState> grid;
   final Offset offset;
+
+  void paint(Canvas canvas, Size size, Size cellSize) {
+    Offset worldOrigin = Offset(
+      size.width / 2.0 - (offset.dx) * cellSize.width,
+      size.height / 2.0 - (offset.dy) * cellSize.height,
+    );
+
+    for (int y = 0; y < height; y += 1) {
+      for (int x = 0; x < width; x += 1) {
+        grid[x + y * width].paint(
+          canvas,
+          cellSize,
+          worldOrigin + Offset(x * cellSize.width, y * cellSize.height),
+        );
+      }
+    }
+    paintPerson(
+      canvas,
+      cellSize,
+      size.center(Offset.zero) - cellSize.center(Offset.zero),
+    );
+  }
+
+  void paintPerson(Canvas canvas, Size cellSize, Offset cellOrigin) {
+    canvas.drawCircle(
+      cellSize.center(cellOrigin),
+      cellSize.shortestSide / 2.0,
+      Paint()..color = Colors.yellow,
+    );
+  }
+
+  static WorldState lerp(WorldState a, WorldState b, double t) {
+    assert(t != null);
+    assert(a != null);
+    assert(b != null);
+    if (t == 0.0) {
+      return a;
+    }
+    if (t == 1.0) {
+      return b;
+    }
+    assert(a.width == b.width);
+    return WorldState(
+      b.width,
+      b.grid,
+      Offset.lerp(a.offset, b.offset, t),
+    );
+  }
+}
+
+class WorldStateTween extends Tween<WorldState> {
+  WorldStateTween({ WorldState begin, WorldState end }) : super(begin: begin, end: end);
+  
+  WorldState lerp(double t) {
+    return WorldState.lerp(begin, end, t);
+  }
+}
+
+class GamePage extends StatefulWidget {
+  GamePage({Key key, this.source}) : super(key: key);
+
+  final WorldSource source;
+
+  @override
+  _GamePageState createState() => _GamePageState();
 }
 
 class _GamePageState extends State<GamePage> {
@@ -177,7 +233,9 @@ class _GamePageState extends State<GamePage> {
         child: CircularProgressIndicator(),
       );
     }
-    return WorldCanvas(
+    return AnimatedWorldCanvas(
+      duration: const Duration(milliseconds: 150),
+      curve: Curves.easeInQuint,
       world: _currentFrame,
       child: Stack(
         children: <Widget>[
@@ -281,35 +339,46 @@ class _WorldPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    Offset worldOrigin = Offset(
-      size.width / 2.0 - (world.offset.dx) * cellSize.width,
-      size.height / 2.0 - (world.offset.dy) * cellSize.height,
-    );
-
-    for (int y = 0; y < world.height; y += 1) {
-      for (int x = 0; x < world.width; x += 1) {
-        world.grid[x + y * world.width].paint(
-          canvas,
-          cellSize,
-          worldOrigin + Offset(x * cellSize.width, y * cellSize.height),
-        );
-      }
-    }
-    paintPerson(
-      canvas,
-      cellSize,
-      size.center(Offset.zero) - cellSize.center(Offset.zero),
-    );
-  }
-
-  void paintPerson(Canvas canvas, Size cellSize, Offset cellOrigin) {
-    canvas.drawCircle(
-      cellSize.center(cellOrigin),
-      cellSize.shortestSide / 2.0,
-      Paint()..color = Colors.yellow,
-    );
+    world.paint(canvas, size, cellSize);
   }
 
   @override
   bool shouldRepaint(_WorldPainter oldDelegate) => world != oldDelegate.world;
+}
+
+class AnimatedWorldCanvas extends ImplicitlyAnimatedWidget {
+  AnimatedWorldCanvas({
+    Key key,
+    this.world,
+    Curve curve: Curves.linear,
+    @required Duration duration,
+    VoidCallback onEnd,
+    this.child,
+  }) : super(key: key, curve: curve, duration: duration, onEnd: onEnd);
+
+  final WorldState world;
+  final Widget child;
+
+  @override
+  _AnimatedWorldCanvasState createState() => _AnimatedWorldCanvasState();
+}
+
+class _AnimatedWorldCanvasState extends AnimatedWidgetBaseState<AnimatedWorldCanvas> {
+  Tween<WorldState> _world;
+
+  @override
+  void forEachTween(TweenVisitor<dynamic> visitor) {
+    _world = visitor(
+      _world,
+      widget.world, (dynamic value) => WorldStateTween(begin: widget.world),
+    ) as Tween<WorldState>;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return WorldCanvas(
+      world: _world.evaluate(animation),
+      child: widget.child,
+    );
+  }
 }
