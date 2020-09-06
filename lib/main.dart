@@ -102,10 +102,11 @@ class TreeCellState extends CellState {
 
 @immutable
 class WorldState {
-  const WorldState(this.width, this.grid, this.offset);
+  const WorldState(this.name, this.width, this.grid, this.offset);
 
   factory WorldState.fromWorld(World world) {
     return WorldState(
+      world.name,
       world.width,
       world.cells
           .map<CellState>((Cell cell) => CellState.fromCell(cell))
@@ -114,6 +115,7 @@ class WorldState {
     );
   }
 
+  final String name;
   final int width;
   int get height => grid.length ~/ width;
   final List<CellState> grid;
@@ -159,8 +161,12 @@ class WorldState {
     if (t == 1.0) {
       return b;
     }
+    if (a.name != b.name) {
+      return t < 0.5 ? a : b;
+    }
     assert(a.width == b.width);
     return WorldState(
+      b.name,
       b.width,
       b.grid,
       Offset.lerp(a.offset, b.offset, t),
