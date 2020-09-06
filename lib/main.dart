@@ -86,13 +86,18 @@ class TreeCellState extends CellState {
   @override
   void paint(Canvas canvas, Size cellSize, Offset cellOrigin) {
     super.paint(canvas, cellSize, cellOrigin);
+    Rect treeRect = (cellOrigin & cellSize).deflate(cellSize.longestSide * 0.1);
     canvas.drawPath(
-      Path()..addPath(_treeShape(cellSize), cellOrigin),
-      Paint()..color = Colors.green.withAlpha(50),
+      Path()..addPath(_triangle(Size(treeRect.width, treeRect.height * 0.75)), treeRect.topLeft),
+      Paint()..color = Colors.green[900],
+    );
+    canvas.drawRect(
+      Rect.fromLTWH(treeRect.left + treeRect.width * 0.4, treeRect.top + treeRect.height * 0.75, treeRect.width * 0.2, treeRect.height * 0.25),
+      Paint()..color = Colors.brown[800],
     );
   }
 
-  static Path _treeShape(Size cellSize) {
+  static Path _triangle(Size cellSize) {
     return Path()
       ..moveTo(0.5 * cellSize.width, 0)
       ..lineTo(cellSize.width, cellSize.height)
