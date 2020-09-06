@@ -88,11 +88,17 @@ class TreeCellState extends CellState {
     super.paint(canvas, cellSize, cellOrigin);
     Rect treeRect = (cellOrigin & cellSize).deflate(cellSize.longestSide * 0.1);
     canvas.drawPath(
-      Path()..addPath(_triangle(Size(treeRect.width, treeRect.height * 0.75)), treeRect.topLeft),
+      Path()
+        ..addPath(_triangle(Size(treeRect.width, treeRect.height * 0.75)),
+            treeRect.topLeft),
       Paint()..color = Colors.green[900],
     );
     canvas.drawRect(
-      Rect.fromLTWH(treeRect.left + treeRect.width * 0.4, treeRect.top + treeRect.height * 0.75, treeRect.width * 0.2, treeRect.height * 0.25),
+      Rect.fromLTWH(
+          treeRect.left + treeRect.width * 0.4,
+          treeRect.top + treeRect.height * 0.75,
+          treeRect.width * 0.2,
+          treeRect.height * 0.25),
       Paint()..color = Colors.brown[800],
     );
   }
@@ -170,6 +176,8 @@ class WorldState {
       return t < 0.5 ? a : b;
     }
     assert(a.width == b.width);
+    if ((b.offset.dx - a.offset.dx).abs() > 0 &&
+        (b.offset.dy - a.offset.dy).abs() > 0) return b;
     return WorldState(
       b.name,
       b.width,
@@ -180,8 +188,9 @@ class WorldState {
 }
 
 class WorldStateTween extends Tween<WorldState> {
-  WorldStateTween({ WorldState begin, WorldState end }) : super(begin: begin, end: end);
-  
+  WorldStateTween({WorldState begin, WorldState end})
+      : super(begin: begin, end: end);
+
   WorldState lerp(double t) {
     return WorldState.lerp(begin, end, t);
   }
@@ -374,14 +383,16 @@ class AnimatedWorldCanvas extends ImplicitlyAnimatedWidget {
   _AnimatedWorldCanvasState createState() => _AnimatedWorldCanvasState();
 }
 
-class _AnimatedWorldCanvasState extends AnimatedWidgetBaseState<AnimatedWorldCanvas> {
+class _AnimatedWorldCanvasState
+    extends AnimatedWidgetBaseState<AnimatedWorldCanvas> {
   Tween<WorldState> _world;
 
   @override
   void forEachTween(TweenVisitor<dynamic> visitor) {
     _world = visitor(
       _world,
-      widget.world, (dynamic value) => WorldStateTween(begin: widget.world),
+      widget.world,
+      (dynamic value) => WorldStateTween(begin: widget.world),
     ) as Tween<WorldState>;
   }
 
