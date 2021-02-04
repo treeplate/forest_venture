@@ -81,7 +81,7 @@ class CharCellState extends CellState {
 }
 
 class TreeCellState extends CellState {
-  TreeCellState() : super(Colors.green[200].withAlpha(50));
+  TreeCellState() : super(Colors.brown.withAlpha(50));
 
   @override
   void paint(Canvas canvas, Size cellSize, Offset cellOrigin) {
@@ -137,7 +137,7 @@ class WorldState {
       size.width / 2.0 - (offset.dx) * cellSize.width,
       size.height / 2.0 - (offset.dy) * cellSize.height,
     );
-
+    canvas.drawRect(Offset.zero & size, Paint()..color = Colors.black);
     for (int y = 0; y < height; y += 1) {
       for (int x = 0; x < width; x += 1) {
         grid[x + y * width].paint(
