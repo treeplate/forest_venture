@@ -205,6 +205,36 @@ class GamePage extends StatefulWidget {
   _GamePageState createState() => _GamePageState();
 }
 
+enum MoveDirection { left, up, right, down }
+
+class MoveIntent extends Intent {
+  const MoveIntent(this.direction);
+  final MoveDirection direction;
+}
+
+class MoveAction extends Action<MoveIntent> {
+  MoveAction(this.world);
+  final World world;
+
+  @override
+  void invoke(MoveIntent intent) {
+    switch (intent.direction) {
+      case MoveDirection.left:
+        world.left();
+        break;
+      case MoveDirection.up:
+        world.up();
+        break;
+      case MoveDirection.right:
+        world.right();
+        break;
+      case MoveDirection.down:
+        world.down();
+        break;
+    }
+  }
+}
+
 class _GamePageState extends State<GamePage> {
   World _world;
   WorldState _currentFrame;
@@ -253,56 +283,87 @@ class _GamePageState extends State<GamePage> {
         child: CircularProgressIndicator(),
       );
     }
-    return AnimatedWorldCanvas(
-      duration: const Duration(milliseconds: 150),
-      curve: Curves.easeInQuint,
-      world: _currentFrame,
-      child: Stack(
-        children: <Widget>[
-          ClipPath(
-              clipper: PolygonClipper(<Offset>[
-                Offset(0.0, 0.0),
-                Offset(1.0, 0.0),
-                Offset(0.5, 0.5)
-              ]),
-              child: Material(
-                type: MaterialType.transparency,
-                child: InkWell(onTap: _world?.up),
-              )),
-          ClipPath(
-            clipper: PolygonClipper(<Offset>[
-              Offset(1.0, 0.0),
-              Offset(1.0, 1.0),
-              Offset(0.5, 0.5),
-            ]),
-            child: Material(
-              type: MaterialType.transparency,
-              child: InkWell(onTap: _world?.right),
-            ),
-          ),
-          ClipPath(
-            clipper: PolygonClipper(<Offset>[
-              Offset(1.0, 1.0),
-              Offset(0.0, 1.0),
-              Offset(0.5, 0.5),
-            ]),
-            child: Material(
-              type: MaterialType.transparency,
-              child: InkWell(onTap: _world?.down),
-            ),
-          ),
-          ClipPath(
-            clipper: PolygonClipper(<Offset>[
-              Offset(0.0, 1.0),
-              Offset(0.0, 0.0),
-              Offset(0.5, 0.5),
-            ]),
-            child: Material(
-              type: MaterialType.transparency,
-              child: InkWell(onTap: _world?.left),
-            ),
-          ),
-        ],
+    return Shortcuts(
+      shortcuts: <LogicalKeySet, Intent>{
+        // WASD
+        LogicalKeySet(LogicalKeyboardKey.keyW): const MoveIntent(MoveDirection.up),
+        LogicalKeySet(LogicalKeyboardKey.keyA): const MoveIntent(MoveDirection.left),
+        LogicalKeySet(LogicalKeyboardKey.keyS): const MoveIntent(MoveDirection.down),
+        LogicalKeySet(LogicalKeyboardKey.keyD): const MoveIntent(MoveDirection.right),
+        // Dvorak WASD (A is the same as above)
+        LogicalKeySet(LogicalKeyboardKey.comma): const MoveIntent(MoveDirection.up),
+        LogicalKeySet(LogicalKeyboardKey.keyO): const MoveIntent(MoveDirection.down),
+        LogicalKeySet(LogicalKeyboardKey.keyE): const MoveIntent(MoveDirection.right),
+        // Arrow keys
+        LogicalKeySet(LogicalKeyboardKey.arrowUp): const MoveIntent(MoveDirection.up),
+        LogicalKeySet(LogicalKeyboardKey.arrowLeft): const MoveIntent(MoveDirection.left),
+        LogicalKeySet(LogicalKeyboardKey.arrowDown): const MoveIntent(MoveDirection.down),
+        LogicalKeySet(LogicalKeyboardKey.arrowRight): const MoveIntent(MoveDirection.right),
+      },
+      child: Actions(
+        actions: <Type, Action<Intent>>{
+          if (_world != null)
+            MoveIntent: MoveAction(_world),
+        },
+        child: Builder(
+          builder: (BuildContext context) {
+            return Focus(
+              autofocus: true,
+              child: AnimatedWorldCanvas(
+                duration: const Duration(milliseconds: 150),
+                curve: Curves.easeInQuint,
+                world: _currentFrame,
+                child: Stack(
+                  children: <Widget>[
+                    ClipPath(
+                      clipper: PolygonClipper(<Offset>[
+                        Offset(0.0, 0.0),
+                        Offset(1.0, 0.0),
+                        Offset(0.5, 0.5)
+                      ]),
+                      child: Material(
+                        type: MaterialType.transparency,
+                        child: InkWell(onTap: () { Actions.invoke(context, MoveIntent(MoveDirection.up)); }),
+                      )),
+                    ClipPath(
+                      clipper: PolygonClipper(<Offset>[
+                        Offset(1.0, 0.0),
+                        Offset(1.0, 1.0),
+                        Offset(0.5, 0.5),
+                      ]),
+                      child: Material(
+                        type: MaterialType.transparency,
+                        child: InkWell(onTap: () { Actions.invoke(context, MoveIntent(MoveDirection.right)); }),
+                      ),
+                    ),
+                    ClipPath(
+                      clipper: PolygonClipper(<Offset>[
+                        Offset(1.0, 1.0),
+                        Offset(0.0, 1.0),
+                        Offset(0.5, 0.5),
+                      ]),
+                      child: Material(
+                        type: MaterialType.transparency,
+                        child: InkWell(onTap: () { Actions.invoke(context, MoveIntent(MoveDirection.down)); }),
+                      ),
+                    ),
+                    ClipPath(
+                      clipper: PolygonClipper(<Offset>[
+                        Offset(0.0, 1.0),
+                        Offset(0.0, 0.0),
+                        Offset(0.5, 0.5),
+                      ]),
+                      child: Material(
+                        type: MaterialType.transparency,
+                        child: InkWell(onTap: () { Actions.invoke(context, MoveIntent(MoveDirection.left)); }),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
       ),
     );
   }
