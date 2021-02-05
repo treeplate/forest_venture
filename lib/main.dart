@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Threshold;
 import 'package:flutter/services.dart';
 
 import 'world.dart';
@@ -34,6 +34,7 @@ class CellState {
       case Null:
         return CellState(Colors.black.withAlpha(50));
       case Empty:
+      case Threshold:
         return CellState(Colors.brown.withAlpha(50));
       case Goal:
         return CellState(Colors.green);
@@ -72,7 +73,6 @@ class ArrowCellState extends CellState {
     canvas.save();
     canvas.translate(center.dx, center.dy);
     var radians = dir.toRadians();
-    print(radians);
     canvas.rotate(radians);
     canvas.translate(-center.dx, -center.dy);
     canvas.drawPath(p, ((Paint()..color=Colors.orange)..style=PaintingStyle.stroke)..strokeWidth=5);
@@ -113,7 +113,7 @@ class TreeCellState extends CellState {
 
 @immutable
 class WorldState {
-  const WorldState(this.name, this.width, this.grid, this.offset);
+  const WorldState(this.name, this.width, this.grid, this.offset, this.message);
 
   factory WorldState.fromWorld(World world) {
     return WorldState(
@@ -123,6 +123,7 @@ class WorldState {
           .map<CellState>((Cell cell) => CellState.fromCell(cell))
           .toList(),
       Offset(world.playerX + 0.5, world.playerY + 0.5),
+      world.currentMessage,
     );
   }
 
@@ -131,6 +132,7 @@ class WorldState {
   int get height => grid.length ~/ width;
   final List<CellState> grid;
   final Offset offset;
+  final String message;
 
   void paint(Canvas canvas, Size size, Size cellSize) {
     Offset worldOrigin = Offset(
@@ -183,6 +185,7 @@ class WorldState {
       b.width,
       b.grid,
       Offset.lerp(a.offset, b.offset, t),
+      b.message,
     );
   }
 }
@@ -283,6 +286,7 @@ class _GamePageState extends State<GamePage> {
         child: CircularProgressIndicator(),
       );
     }
+    assert(_currentFrame != null);
     return Shortcuts(
       shortcuts: <LogicalKeySet, Intent>{
         // WASD
@@ -302,8 +306,7 @@ class _GamePageState extends State<GamePage> {
       },
       child: Actions(
         actions: <Type, Action<Intent>>{
-          if (_world != null)
-            MoveIntent: MoveAction(_world),
+          MoveIntent: MoveAction(_world),
         },
         child: Builder(
           builder: (BuildContext context) {
@@ -356,6 +359,35 @@ class _GamePageState extends State<GamePage> {
                       child: Material(
                         type: MaterialType.transparency,
                         child: InkWell(onTap: () { Actions.invoke(context, MoveIntent(MoveDirection.left)); }),
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 32.0,
+                      left: 0.0,
+                      right: 0.0,
+                      child: IgnorePointer(
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 250),
+                          switchInCurve: Curves.ease,
+                          switchOutCurve: Curves.ease,
+                          child: _currentFrame.message.isEmpty ? SizedBox.shrink() : Container(
+                            key: Key(_currentFrame.message),
+                            padding: EdgeInsets.all(24.0),
+                            decoration: ShapeDecoration(
+                              shape: StadiumBorder(),
+                              color: const Color(0x7F000000),
+                            ),
+                            child: Text(
+                              _currentFrame.message,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                inherit: false,
+                                fontSize: 40.0,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ],

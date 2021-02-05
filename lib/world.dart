@@ -6,7 +6,7 @@ typedef DataLoader = Future<String> Function(String name);
 
 class WorldSource extends ChangeNotifier {
   WorldSource(this.loader) {
-    initWorld('end');
+    initWorld('main');
   }
 
   final DataLoader loader;
@@ -36,13 +36,15 @@ class WorldSource extends ChangeNotifier {
 
 class World extends ChangeNotifier {
   World(this.width, this.cells, this._playerPos, this.to, this.worldSource,
-      this.name) {
+      this.name, this.messageIDs, this.messages) {
     //print("World.to: '$to'");
+    _checkForMessage(atOffset(_playerPos));
   }
   World.fromHeight(int height, this.cells, this._playerPos, this.to,
-      this.worldSource, this.name)
+      this.worldSource, this.name, this.messageIDs, this.messages)
       : this.width = cells.length ~/ height {
     //print("World.to fromHeight: '$to'");
+    _checkForMessage(atOffset(_playerPos));
   }
 
   final WorldSource worldSource;
@@ -50,6 +52,7 @@ class World extends ChangeNotifier {
   final String name;
   final int width;
   final String to;
+
   int get height {
     assert(cells.length.isFinite);
     assert(width.isFinite);
@@ -87,10 +90,12 @@ class World extends ChangeNotifier {
         MoveResult(Direction(0, 0), Offset(-1, 0));
     Offset oldPos = _playerPos;
     _playerPos = isValid(att.newPos) ? att.newPos : _playerPos;
+    Cell newCell = atOffset(_playerPos);
+    _checkForMessage(newCell);
     notifyListeners();
-    if (atOffset(_playerPos) is Goal) {
+    if (newCell is Goal) {
       worldSource.initWorld(to);
-    } else if (atOffset(_playerPos) is! Empty) {
+    } else if (newCell is! Empty) {
       if (_playerPos == oldPos) return;
       move(att.dir);
     }
@@ -102,6 +107,24 @@ class World extends ChangeNotifier {
 
   final List<Cell> cells;
 
+  int _nextMessage = 0;
+  final List<String> messageIDs;
+  final Map<String, String> messages;
+  String get currentMessage => _currentMessage;
+  String _currentMessage = '';
+
+  void _checkForMessage(Cell cell) {
+    // caller must call notifyListeners if desired
+    if (cell is Threshold) {
+      if (_nextMessage < messageIDs.length) {
+        if (cell.id == messageIDs[_nextMessage]) {
+          _currentMessage = messages[messageIDs[_nextMessage]];
+          _nextMessage += 1;
+        }
+      }
+    }
+  }
+
   factory World.parse(String rawData, WorldSource source) {
     List<String> data = rawData.split('\n');
     List<Cell> parsed = [];
@@ -112,9 +135,13 @@ class World extends ChangeNotifier {
     String to = data[1];
     String name = data[2];
     //print("parse($to)");
-    for (String line in data.toList()..removeRange(0, 3)) {
-      cols:
-      for (String char in line.split('')) {
+    int lineIndex = 3;
+    rows: for (; lineIndex < data.length; lineIndex += 1) {
+      String line = data[lineIndex];
+      if (line.isEmpty) {
+        break rows;
+      }
+      cols: for (String char in line.split('')) {
         switch (char) {
           case " ":
             parsed.add(Empty());
@@ -141,12 +168,60 @@ class World extends ChangeNotifier {
           case "|":
             parsed.add(null);
             break cols;
+          case "a":
+          case "b":
+          case "c":
+          case "d":
+          case "e":
+          case "f":
+          case "g":
+          case "h":
+          case "i":
+          case "j":
+          case "k":
+          case "l":
+          case "m":
+          case "n":
+          case "o":
+          case "p":
+          case "q":
+          case "r":
+          case "s":
+          case "t":
+          case "u":
+          case "v":
+          case "w":
+          case "x":
+          case "y":
+          case "z":
+            parsed.add(Threshold(char));
+            break;
           default:
             throw FormatException(
-                "Unexpected \"$char\"(${char.runes.first}) while parsing world");
+                "Unexpected \"$char\"(${char.runes.first}) while parsing world on line $lineIndex");
         }
       }
       height++;
+    }
+    lineIndex += 1;
+    // read messages
+    final List<String> messageIDs = <String>[];
+    final Map<String, String> messages = <String, String>{};
+    messages: for (; lineIndex < data.length; lineIndex += 1) {
+      String line = data[lineIndex];
+      if (line.isEmpty) {
+        break messages;
+      }
+      String id = line[0];
+      String message = '';
+      if (line.length > 1) {
+        if (line[1] != ' ') {
+          throw FormatException("message format is incorrect on line $lineIndex: $line");
+        }
+        message = line.substring(2);
+      }
+      messageIDs.add(id);
+      messages[id] = message;
     }
     return World.fromHeight(
       height,
@@ -155,6 +230,8 @@ class World extends ChangeNotifier {
       to,
       source,
       name,
+      messageIDs,
+      messages,
     );
   }
   String toString() =>
@@ -183,6 +260,12 @@ abstract class Cell {
 
 class Empty extends Cell {
   String toString() => " ";
+}
+
+class Threshold extends Empty {
+  Threshold(this.id);
+  final String id;
+  String toString() => id;
 }
 
 class Goal extends Cell {

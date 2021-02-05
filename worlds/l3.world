@@ -2,8 +2,11 @@
 l4
 l3
 TTTTTTTTT| You see a strange
-       vT| arrow on the floor.
+     a vT| arrow on the floor.
 TTTTTTTvT| 
-TTTTTTT T| It appears to move
+TTTTTTTbT| It appears to move
 TTTTTTTGT| you when you step
 TTTTTTTTT| on it.
+
+a You see a strange arrow on the floor.
+b It appears to move you when you step on it.
