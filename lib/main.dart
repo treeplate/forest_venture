@@ -40,7 +40,7 @@ class CellState {
       case Tree:
         return TreeCellState();
       case OneWay:
-        return CharCellState("$cell");
+        return ArrowCellState((cell as OneWay).dir);
       default:
         throw UnimplementedError("Unknown ${cell.runtimeType}");
     }
@@ -57,26 +57,26 @@ class CellState {
   }
 }
 
-class CharCellState extends CellState {
-  CharCellState(this.label) : super(Colors.brown.withAlpha(50));
-  final String label;
+class ArrowCellState extends CellState {
+  ArrowCellState(this.dir) : super(Colors.brown.withAlpha(50));
+  final Direction dir;
 
   @override
   void paint(Canvas canvas, Size cellSize, Offset cellOrigin) {
     super.paint(canvas, cellSize, cellOrigin);
-    // TODO(ianh): Cache the TextPainter.
-    TextPainter(
-      text: TextSpan(
-          text: label,
-          style: TextStyle(
-            fontSize: cellSize.shortestSide,
-            height: 1,
-            color: Color(0xFF8B4513),
-          )),
-      textDirection: TextDirection.ltr,
-    )
-      ..layout()
-      ..paint(canvas, cellOrigin);
+    Path p = Path();
+    p.moveTo(cellOrigin.dx, cellOrigin.dy);
+    p.lineTo(cellOrigin.dx + cellSize.width, cellOrigin.dy + (cellSize.height/2));
+    p.lineTo(cellOrigin.dx, cellOrigin.dy + cellSize.height);
+    Offset center = cellSize.center(cellOrigin);
+    canvas.save();
+    canvas.translate(center.dx, center.dy);
+    var radians = dir.toRadians();
+    print(radians);
+    canvas.rotate(radians);
+    canvas.translate(-center.dx, -center.dy);
+    canvas.drawPath(p, ((Paint()..color=Colors.orange)..style=PaintingStyle.stroke)..strokeWidth=5);
+    canvas.restore();
   }
 }
 

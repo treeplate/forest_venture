@@ -1,11 +1,12 @@
 import 'package:flutter/foundation.dart';
 import 'dart:ui';
+import 'dart:math';
 
 typedef DataLoader = Future<String> Function(String name);
 
 class WorldSource extends ChangeNotifier {
   WorldSource(this.loader) {
-    initWorld('main');
+    initWorld('end');
   }
 
   final DataLoader loader;
@@ -62,28 +63,28 @@ class World extends ChangeNotifier {
   int get playerY => _playerPos.dy.toInt();
 
   void left() {
-    move(Offset(-1, 0));
+    move(Direction.a());
   }
 
   void up() {
-    move(Offset(0, -1));
+    move(Direction.w());
   }
 
   void right() {
-    move(Offset(1, 0));
+    move(Direction.d());
   }
 
   int x = 0;
   int y = 0;
-  void move(Offset dir) {
+  void move(Direction dir) {
     assert(
-        dir == Offset(0, 1) ||
-            dir == Offset(0, -1) ||
-            dir == Offset(1, 0) ||
-            dir == Offset(-1, 0),
+        dir == Direction.w() ||
+            dir == Direction.s() ||
+            dir == Direction.a() ||
+            dir == Direction.d(),
         "is $dir");
-    MoveResult att = atOffset(_playerPos + dir)?.move(_playerPos + dir, dir) ??
-        MoveResult(Offset(0, 0), Offset(-1, 0));
+    MoveResult att = atOffset(_playerPos + dir.toOffset())?.move(_playerPos + dir.toOffset(), dir) ??
+        MoveResult(Direction(0, 0), Offset(-1, 0));
     Offset oldPos = _playerPos;
     _playerPos = isValid(att.newPos) ? att.newPos : _playerPos;
     notifyListeners();
@@ -96,7 +97,7 @@ class World extends ChangeNotifier {
   }
 
   void down() {
-    move(Offset(0, 1));
+    move(Direction.s());
   }
 
   final List<Cell> cells;
@@ -125,17 +126,17 @@ class World extends ChangeNotifier {
             parsed.add(Tree());
             break;
           case ">":
-            parsed.add(OneWay(Offset(1, 0)));
+            parsed.add(OneWay(Direction.d()));
             break;
           case "<":
-            parsed.add(OneWay(Offset(-1, 0)));
+            parsed.add(OneWay(Direction.a()));
             break;
           case "A":
           case "∧":
-            parsed.add(OneWay(Offset(0, -1)));
+            parsed.add(OneWay(Direction.w()));
             break;
           case "v":
-            parsed.add(OneWay(Offset(0, 1)));
+            parsed.add(OneWay(Direction.s()));
             break;
           case "|":
             parsed.add(null);
@@ -177,7 +178,7 @@ class World extends ChangeNotifier {
 }
 
 abstract class Cell {
-  MoveResult move(Offset pos, Offset inDir) => MoveResult(inDir, pos);
+  MoveResult move(Offset pos, Direction inDir) => MoveResult(inDir, pos);
 }
 
 class Empty extends Cell {
@@ -189,29 +190,69 @@ class Goal extends Cell {
 }
 
 class Tree extends Cell {
-  MoveResult move(Offset pos, Offset inDir) => MoveResult(-inDir, pos - inDir);
+  MoveResult move(Offset pos, Direction inDir) => MoveResult(Direction(-inDir.x, -inDir.y), pos - inDir.toOffset());
   String toString() => "#";
 }
 
 class OneWay extends Cell {
   OneWay(this.dir);
-  final Offset dir;
+  final Direction dir;
   String toString() {
-    if (dir == Offset(0, 1)) return "v";
-    if (dir == Offset(0, -1)) return "∧";
-    if (dir == Offset(1, 0)) return ">";
-    if (dir == Offset(-1, 0)) return "<";
+    if (dir == Direction.s()) return "v";
+    if (dir == Direction.w()) return "∧";
+    if (dir == Direction.d()) return ">";
+    if (dir == Direction.a()) return "<";
     throw UnimplementedError(
-        "Unknown direction ($dir) == Offset(-1, 0) ${dir == Offset(-1, 0)}");
+        "Unknown direction ($dir)");
   }
 
-  MoveResult move(Offset pos, Offset inDir) {
-    return MoveResult(dir, pos + dir);
+  MoveResult move(Offset pos, Direction inDir) {
+    return MoveResult(dir, pos + dir.toOffset());
   }
 }
 
 class MoveResult {
   MoveResult(this.dir, this.newPos);
-  final Offset dir;
+  final Direction dir;
   final Offset newPos;
+}
+
+class Direction {
+  const Direction.w()
+      : x = 0,
+        y = -1;
+  const Direction.a()
+      : x = -1,
+        y = 0;
+  const Direction.s()
+      : x = 0,
+        y = 1;
+  const Direction.d()
+      : x = 1,
+        y = 0;
+  const Direction(this.x, this.y);
+  final int x;
+  final int y;
+  operator ==(Object direction) =>
+      direction is Direction && direction.x == x && direction.y == y;
+  Offset toOffset() => Offset(x/1, y/1);
+  double toRadians() {
+    if(this == Direction.w()) return -pi/2;
+    if(this == Direction.a()) return pi;
+    if(this == Direction.s()) return pi/2;
+    if(this == Direction.d()) return 0;
+    throw "Unknown Direction";
+  }
+
+  @override
+  // TODO(tree): implement hashCode
+  int get hashCode => super.hashCode;
+
+  Direction rotateLeft() {
+    if(this == Direction.d()) return Direction.w();
+    if(this == Direction.w()) return Direction.a();
+    if(this == Direction.a()) return Direction.s();
+    if(this == Direction.s()) return Direction.d();
+    throw "Unnown Direction";
+  }
 }
