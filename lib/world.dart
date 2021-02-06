@@ -86,7 +86,9 @@ class World extends ChangeNotifier {
             dir == Direction.a() ||
             dir == Direction.d(),
         "is $dir");
-    MoveResult att = atOffset(_playerPos + dir.toOffset())?.move(_playerPos + dir.toOffset(), dir) ??
+    var nextOffset = atOffset(_playerPos + dir.toOffset());
+    if (!nextOffset.canMove) return;
+    MoveResult att = nextOffset?.move(_playerPos + dir.toOffset(), dir) ??
         MoveResult(Direction(0, 0), Offset(-1, 0));
     Offset oldPos = _playerPos;
     _playerPos = isValid(att.newPos) ? att.newPos : _playerPos;
@@ -136,12 +138,14 @@ class World extends ChangeNotifier {
     String name = data[2];
     //print("parse($to)");
     int lineIndex = 3;
-    rows: for (; lineIndex < data.length; lineIndex += 1) {
+    rows:
+    for (; lineIndex < data.length; lineIndex += 1) {
       String line = data[lineIndex];
       if (line.isEmpty) {
         break rows;
       }
-      cols: for (String char in line.split('')) {
+      cols:
+      for (String char in line.split('')) {
         switch (char) {
           case " ":
             parsed.add(Empty());
@@ -207,7 +211,8 @@ class World extends ChangeNotifier {
     // read messages
     final List<String> messageIDs = <String>[];
     final Map<String, String> messages = <String, String>{};
-    messages: for (; lineIndex < data.length; lineIndex += 1) {
+    messages:
+    for (; lineIndex < data.length; lineIndex += 1) {
       String line = data[lineIndex];
       if (line.isEmpty) {
         break messages;
@@ -216,7 +221,8 @@ class World extends ChangeNotifier {
       String message = '';
       if (line.length > 1) {
         if (line[1] != ' ') {
-          throw FormatException("message format is incorrect on line $lineIndex: $line");
+          throw FormatException(
+              "message format is incorrect on line $lineIndex: $line");
         }
         message = line.substring(2);
       }
@@ -256,6 +262,7 @@ class World extends ChangeNotifier {
 
 abstract class Cell {
   MoveResult move(Offset pos, Direction inDir) => MoveResult(inDir, pos);
+  bool get canMove => true;
 }
 
 class Empty extends Cell {
@@ -273,8 +280,10 @@ class Goal extends Cell {
 }
 
 class Tree extends Cell {
-  MoveResult move(Offset pos, Direction inDir) => MoveResult(Direction(-inDir.x, -inDir.y), pos - inDir.toOffset());
+  MoveResult move(Offset pos, Direction inDir) =>
+      MoveResult(Direction(-inDir.x, -inDir.y), pos - inDir.toOffset());
   String toString() => "#";
+  bool get canMove => false;
 }
 
 class OneWay extends Cell {
@@ -285,8 +294,7 @@ class OneWay extends Cell {
     if (dir == Direction.w()) return "∧";
     if (dir == Direction.d()) return ">";
     if (dir == Direction.a()) return "<";
-    throw UnimplementedError(
-        "Unknown direction ($dir)");
+    throw UnimplementedError("Unknown direction ($dir)");
   }
 
   MoveResult move(Offset pos, Direction inDir) {
@@ -318,12 +326,12 @@ class Direction {
   final int y;
   operator ==(Object direction) =>
       direction is Direction && direction.x == x && direction.y == y;
-  Offset toOffset() => Offset(x/1, y/1);
+  Offset toOffset() => Offset(x / 1, y / 1);
   double toRadians() {
-    if(this == Direction.w()) return -pi/2;
-    if(this == Direction.a()) return pi;
-    if(this == Direction.s()) return pi/2;
-    if(this == Direction.d()) return 0;
+    if (this == Direction.w()) return -pi / 2;
+    if (this == Direction.a()) return pi;
+    if (this == Direction.s()) return pi / 2;
+    if (this == Direction.d()) return 0;
     throw "Unknown Direction";
   }
 
@@ -332,10 +340,10 @@ class Direction {
   int get hashCode => super.hashCode;
 
   Direction rotateLeft() {
-    if(this == Direction.d()) return Direction.w();
-    if(this == Direction.w()) return Direction.a();
-    if(this == Direction.a()) return Direction.s();
-    if(this == Direction.s()) return Direction.d();
+    if (this == Direction.d()) return Direction.w();
+    if (this == Direction.w()) return Direction.a();
+    if (this == Direction.a()) return Direction.s();
+    if (this == Direction.s()) return Direction.d();
     throw "Unnown Direction";
   }
 }
