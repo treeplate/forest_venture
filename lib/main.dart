@@ -37,7 +37,7 @@ class CellState {
       case Threshold:
         return CellState(Colors.brown.withAlpha(50));
       case Goal:
-        return CellState(Colors.green);
+        return GoalCellState();
       case Tree:
         return TreeCellState();
       case OneWay:
@@ -58,6 +58,16 @@ class CellState {
   }
 }
 
+class GoalCellState extends CellState {
+  GoalCellState() : super(Colors.brown.withAlpha(50));
+  void paint(Canvas canvas, Size cellSize, Offset cellOrigin) {
+    super.paint(canvas, cellSize, cellOrigin);
+    canvas.drawOval(cellOrigin & cellSize, Paint()..color=Colors.brown[700]);
+    canvas.drawRect(Offset(0, cellSize.height/2)+cellOrigin & Size(cellSize.width, cellSize.height/2), Paint()..color=Colors.brown[700]);
+    canvas.drawCircle(cellSize.center(cellOrigin)+Offset(10, 0), 5, Paint()..color=Colors.brown[900]);
+  }
+}
+
 class ArrowCellState extends CellState {
   ArrowCellState(this.dir) : super(Colors.brown.withAlpha(50));
   final Direction dir;
@@ -67,7 +77,10 @@ class ArrowCellState extends CellState {
     super.paint(canvas, cellSize, cellOrigin);
     Path p = Path();
     p.moveTo(cellOrigin.dx, cellOrigin.dy);
-    p.lineTo(cellOrigin.dx + cellSize.width, cellOrigin.dy + (cellSize.height/2));
+    p.lineTo(
+      cellOrigin.dx + cellSize.width,
+      cellOrigin.dy + (cellSize.height / 2),
+    );
     p.lineTo(cellOrigin.dx, cellOrigin.dy + cellSize.height);
     Offset center = cellSize.center(cellOrigin);
     canvas.save();
@@ -75,7 +88,11 @@ class ArrowCellState extends CellState {
     var radians = dir.toRadians();
     canvas.rotate(radians);
     canvas.translate(-center.dx, -center.dy);
-    canvas.drawPath(p, ((Paint()..color=Colors.orange)..style=PaintingStyle.stroke)..strokeWidth=5);
+    canvas.drawPath(
+      p,
+      ((Paint()..color = Colors.orange)..style = PaintingStyle.stroke)
+        ..strokeWidth = 5,
+    );
     canvas.restore();
   }
 }
@@ -290,19 +307,30 @@ class _GamePageState extends State<GamePage> {
     return Shortcuts(
       shortcuts: <LogicalKeySet, Intent>{
         // WASD
-        LogicalKeySet(LogicalKeyboardKey.keyW): const MoveIntent(MoveDirection.up),
-        LogicalKeySet(LogicalKeyboardKey.keyA): const MoveIntent(MoveDirection.left),
-        LogicalKeySet(LogicalKeyboardKey.keyS): const MoveIntent(MoveDirection.down),
-        LogicalKeySet(LogicalKeyboardKey.keyD): const MoveIntent(MoveDirection.right),
+        LogicalKeySet(LogicalKeyboardKey.keyW):
+            const MoveIntent(MoveDirection.up),
+        LogicalKeySet(LogicalKeyboardKey.keyA):
+            const MoveIntent(MoveDirection.left),
+        LogicalKeySet(LogicalKeyboardKey.keyS):
+            const MoveIntent(MoveDirection.down),
+        LogicalKeySet(LogicalKeyboardKey.keyD):
+            const MoveIntent(MoveDirection.right),
         // Dvorak WASD (A is the same as above)
-        LogicalKeySet(LogicalKeyboardKey.comma): const MoveIntent(MoveDirection.up),
-        LogicalKeySet(LogicalKeyboardKey.keyO): const MoveIntent(MoveDirection.down),
-        LogicalKeySet(LogicalKeyboardKey.keyE): const MoveIntent(MoveDirection.right),
+        LogicalKeySet(LogicalKeyboardKey.comma):
+            const MoveIntent(MoveDirection.up),
+        LogicalKeySet(LogicalKeyboardKey.keyO):
+            const MoveIntent(MoveDirection.down),
+        LogicalKeySet(LogicalKeyboardKey.keyE):
+            const MoveIntent(MoveDirection.right),
         // Arrow keys
-        LogicalKeySet(LogicalKeyboardKey.arrowUp): const MoveIntent(MoveDirection.up),
-        LogicalKeySet(LogicalKeyboardKey.arrowLeft): const MoveIntent(MoveDirection.left),
-        LogicalKeySet(LogicalKeyboardKey.arrowDown): const MoveIntent(MoveDirection.down),
-        LogicalKeySet(LogicalKeyboardKey.arrowRight): const MoveIntent(MoveDirection.right),
+        LogicalKeySet(LogicalKeyboardKey.arrowUp):
+            const MoveIntent(MoveDirection.up),
+        LogicalKeySet(LogicalKeyboardKey.arrowLeft):
+            const MoveIntent(MoveDirection.left),
+        LogicalKeySet(LogicalKeyboardKey.arrowDown):
+            const MoveIntent(MoveDirection.down),
+        LogicalKeySet(LogicalKeyboardKey.arrowRight):
+            const MoveIntent(MoveDirection.right),
       },
       child: Actions(
         actions: <Type, Action<Intent>>{
@@ -319,15 +347,18 @@ class _GamePageState extends State<GamePage> {
                 child: Stack(
                   children: <Widget>[
                     ClipPath(
-                      clipper: PolygonClipper(<Offset>[
-                        Offset(0.0, 0.0),
-                        Offset(1.0, 0.0),
-                        Offset(0.5, 0.5)
-                      ]),
-                      child: Material(
-                        type: MaterialType.transparency,
-                        child: InkWell(onTap: () { Actions.invoke(context, MoveIntent(MoveDirection.up)); }),
-                      )),
+                        clipper: PolygonClipper(<Offset>[
+                          Offset(0.0, 0.0),
+                          Offset(1.0, 0.0),
+                          Offset(0.5, 0.5)
+                        ]),
+                        child: Material(
+                          type: MaterialType.transparency,
+                          child: InkWell(onTap: () {
+                            Actions.invoke(
+                                context, MoveIntent(MoveDirection.up));
+                          }),
+                        )),
                     ClipPath(
                       clipper: PolygonClipper(<Offset>[
                         Offset(1.0, 0.0),
@@ -336,7 +367,10 @@ class _GamePageState extends State<GamePage> {
                       ]),
                       child: Material(
                         type: MaterialType.transparency,
-                        child: InkWell(onTap: () { Actions.invoke(context, MoveIntent(MoveDirection.right)); }),
+                        child: InkWell(onTap: () {
+                          Actions.invoke(
+                              context, MoveIntent(MoveDirection.right));
+                        }),
                       ),
                     ),
                     ClipPath(
@@ -347,7 +381,10 @@ class _GamePageState extends State<GamePage> {
                       ]),
                       child: Material(
                         type: MaterialType.transparency,
-                        child: InkWell(onTap: () { Actions.invoke(context, MoveIntent(MoveDirection.down)); }),
+                        child: InkWell(onTap: () {
+                          Actions.invoke(
+                              context, MoveIntent(MoveDirection.down));
+                        }),
                       ),
                     ),
                     ClipPath(
@@ -358,7 +395,10 @@ class _GamePageState extends State<GamePage> {
                       ]),
                       child: Material(
                         type: MaterialType.transparency,
-                        child: InkWell(onTap: () { Actions.invoke(context, MoveIntent(MoveDirection.left)); }),
+                        child: InkWell(onTap: () {
+                          Actions.invoke(
+                              context, MoveIntent(MoveDirection.left));
+                        }),
                       ),
                     ),
                     Positioned(
@@ -370,23 +410,25 @@ class _GamePageState extends State<GamePage> {
                           duration: const Duration(milliseconds: 250),
                           switchInCurve: Curves.ease,
                           switchOutCurve: Curves.ease,
-                          child: _currentFrame.message.isEmpty ? SizedBox.shrink() : Container(
-                            key: Key(_currentFrame.message),
-                            padding: EdgeInsets.all(24.0),
-                            decoration: ShapeDecoration(
-                              shape: StadiumBorder(),
-                              color: const Color(0x7F000000),
-                            ),
-                            child: Text(
-                              _currentFrame.message,
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                inherit: false,
-                                fontSize: 40.0,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
+                          child: _currentFrame.message.isEmpty
+                              ? SizedBox.shrink()
+                              : Container(
+                                  key: Key(_currentFrame.message),
+                                  padding: EdgeInsets.all(24.0),
+                                  decoration: ShapeDecoration(
+                                    shape: StadiumBorder(),
+                                    color: const Color(0x7F000000),
+                                  ),
+                                  child: Text(
+                                    _currentFrame.message,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      inherit: false,
+                                      fontSize: 40.0,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
                         ),
                       ),
                     ),
