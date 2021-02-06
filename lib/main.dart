@@ -232,32 +232,11 @@ class MoveIntent extends Intent {
   final MoveDirection direction;
 }
 
-class MoveAction extends Action<MoveIntent> {
-  MoveAction(this.world);
-  final World world;
-
-  @override
-  void invoke(MoveIntent intent) {
-    switch (intent.direction) {
-      case MoveDirection.left:
-        world.left();
-        break;
-      case MoveDirection.up:
-        world.up();
-        break;
-      case MoveDirection.right:
-        world.right();
-        break;
-      case MoveDirection.down:
-        world.down();
-        break;
-    }
-  }
-}
-
 class _GamePageState extends State<GamePage> {
   World _world;
   WorldState _currentFrame;
+  MoveDirection/*?*/ _pendingDirection;
+  bool _animating = false;
 
   @override
   void initState() {
@@ -292,8 +271,30 @@ class _GamePageState extends State<GamePage> {
 
   void _handleWorldUpdate() {
     setState(() {
+      _animating = _currentFrame != null;
       _currentFrame = _world == null ? null : WorldState.fromWorld(_world);
     });
+  }
+
+  void _handleAnimationEnd() {
+    _animating = false;
+    if (_pendingDirection != null) {
+      switch (_pendingDirection) {
+        case MoveDirection.left:
+          _world.left();
+          break;
+        case MoveDirection.up:
+          _world.up();
+          break;
+        case MoveDirection.right:
+          _world.right();
+          break;
+        case MoveDirection.down:
+          _world.down();
+          break;
+      }
+      _pendingDirection = null;
+    }
   }
 
   @override
@@ -334,7 +335,13 @@ class _GamePageState extends State<GamePage> {
       },
       child: Actions(
         actions: <Type, Action<Intent>>{
-          MoveIntent: MoveAction(_world),
+          MoveIntent: CallbackAction<MoveIntent>(onInvoke: (MoveIntent intent) {
+            _pendingDirection = intent.direction;
+            if (!_animating) {
+              _handleAnimationEnd();
+            }
+            return null;
+          }),
         },
         child: Builder(
           builder: (BuildContext context) {
@@ -344,6 +351,7 @@ class _GamePageState extends State<GamePage> {
                 duration: const Duration(milliseconds: 150),
                 curve: Curves.easeInQuint,
                 world: _currentFrame,
+                onEnd: _handleAnimationEnd,
                 child: Stack(
                   children: <Widget>[
                     ClipPath(
