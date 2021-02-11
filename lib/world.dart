@@ -87,7 +87,7 @@ class World extends ChangeNotifier {
             dir == Direction.d(),
         "is $dir");
     var nextOffset = atOffset(_playerPos + dir.toOffset());
-    if (!nextOffset.canMove) return;
+    if (!(nextOffset?.canMove ?? false)) return;
     MoveResult att = nextOffset?.move(_playerPos + dir.toOffset(), dir) ??
         MoveResult(Direction(0, 0), Offset(-1, 0));
     Offset oldPos = _playerPos;
