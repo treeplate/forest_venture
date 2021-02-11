@@ -13,12 +13,7 @@ const String _emptyWorld = '0 0\n'
 const String _lineWorld = '0 0\n'
     '...\n'
     'line\n'
-    '  |';
-
-const String _treeWorld = '0 0\n'
-    '...\n'
-    'tree\n'
-    ' T';
+    '  T|';
 
 void main() {
   testWidgets('Most basic world', (WidgetTester tester) async {
@@ -36,7 +31,7 @@ void main() {
     );
   });
 
-  testWidgets('Movement', (WidgetTester tester) async {
+  testWidgets('Movement, trees', (WidgetTester tester) async {
     await tester.pumpWidget(
       MaterialApp(
         home: GamePage(
@@ -65,21 +60,6 @@ void main() {
       find.byType(WorldCanvas),
       matchesGoldenFile('basic_world_move_after.png'),
     );
-  });
-
-  testWidgets('Tree world', (WidgetTester tester) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        home: GamePage(
-          source: TestWorldSource(_treeWorld),
-        ),
-      ),
-    );
-    await tester.pump();
-    await expectLater(
-      find.byType(WorldCanvas),
-      matchesGoldenFile('basic_tree_world.png'),
-    );
     await tester.tapAt(
       Offset(
         tester.getCenter(find.byType(WorldCanvas)).dx + 60.0,
@@ -89,7 +69,7 @@ void main() {
     await tester.pump();
     await expectLater(
       find.byType(WorldCanvas),
-      matchesGoldenFile('basic_tree_world.png'),
+      matchesGoldenFile('basic_world_move_after.png'),
     );
   });
 
