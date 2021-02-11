@@ -36,13 +36,13 @@ class WorldSource extends ChangeNotifier {
 
 class World extends ChangeNotifier {
   World(this.width, this.cells, this._playerPos, this.to, this.worldSource,
-      this.name, this.messageIDs, this.messages) {
+      this.name, this.messageIDs, this.messages): _initialPos = _playerPos {
     //print("World.to: '$to'");
     _checkForMessage(atOffset(_playerPos));
   }
   World.fromHeight(int height, this.cells, this._playerPos, this.to,
       this.worldSource, this.name, this.messageIDs, this.messages)
-      : this.width = cells.length ~/ height {
+      : this.width = cells.length ~/ height, _initialPos = _playerPos {
     //print("World.to fromHeight: '$to'");
     _checkForMessage(atOffset(_playerPos));
   }
@@ -62,6 +62,7 @@ class World extends ChangeNotifier {
   }
 
   Offset _playerPos;
+  final Offset _initialPos;
   int get playerX => _playerPos.dx.toInt();
   int get playerY => _playerPos.dy.toInt();
 
@@ -257,6 +258,11 @@ class World extends ChangeNotifier {
         offset.dx >= 0 &&
         offset.dy < height &&
         offset.dy >= 0;
+  }
+
+  void reset() {
+    _playerPos = _initialPos;
+    notifyListeners();
   }
 }
 

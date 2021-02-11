@@ -62,9 +62,13 @@ class GoalCellState extends CellState {
   GoalCellState() : super(Colors.brown.withAlpha(50));
   void paint(Canvas canvas, Size cellSize, Offset cellOrigin) {
     super.paint(canvas, cellSize, cellOrigin);
-    canvas.drawOval(cellOrigin & cellSize, Paint()..color=Colors.brown[700]);
-    canvas.drawRect(Offset(0, cellSize.height/2)+cellOrigin & Size(cellSize.width, cellSize.height/2), Paint()..color=Colors.brown[700]);
-    canvas.drawCircle(cellSize.center(cellOrigin)+Offset(10, 0), 5, Paint()..color=Colors.brown[900]);
+    canvas.drawOval(cellOrigin & cellSize, Paint()..color = Colors.brown[700]);
+    canvas.drawRect(
+        Offset(0, cellSize.height / 2) + cellOrigin &
+            Size(cellSize.width, cellSize.height / 2),
+        Paint()..color = Colors.brown[700]);
+    canvas.drawCircle(cellSize.center(cellOrigin) + Offset(10, 0), 5,
+        Paint()..color = Colors.brown[900]);
   }
 }
 
@@ -235,7 +239,7 @@ class MoveIntent extends Intent {
 class _GamePageState extends State<GamePage> {
   World _world;
   WorldState _currentFrame;
-  MoveDirection/*?*/ _pendingDirection;
+  MoveDirection /*?*/ _pendingDirection;
   bool _animating = false;
 
   @override
@@ -408,6 +412,23 @@ class _GamePageState extends State<GamePage> {
                               context, MoveIntent(MoveDirection.left));
                         }),
                       ),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            TextButton(
+                              onPressed: () => _world.reset(),
+                              child: Container(
+                                color: Color(0x7F000000),
+                                child: Text("Reset Level"),
+                              ),
+                            )
+                          ],
+                        )
+                      ],
                     ),
                     Positioned(
                       bottom: 32.0,
