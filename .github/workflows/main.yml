@@ -15,5 +15,5 @@ jobs:
     - run: flutter channel dev
     - run: flutter upgrade
     - run: flutter pub get
-    - run: flutter test || 0
+    - run: flutter test || true
     - run: base64 /home/runner/work/forest_venture/forest_venture/test/failures/basic_world_1_isolatedDiff.png
