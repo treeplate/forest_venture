@@ -12,7 +12,7 @@ jobs:
     - uses: subosito/flutter-action@v1
       with:
         flutter-version: '1.20.3'
-    - run: flutter pub get
-    - run: flutter test
     - run: flutter channel dev
     - run: flutter upgrade
+    - run: flutter pub get
+    - run: flutter test
