@@ -423,7 +423,10 @@ class _GamePageState extends State<GamePage> {
                               onPressed: () => _world.reset(),
                               child: Container(
                                 color: Color(0x7F000000),
-                                child: Text("Reset Level"),
+                                child: Text(
+                                  "Reset Level",
+                                  style: TextStyle(fontSize: 10, height: 1),
+                                ),
                               ),
                             )
                           ],
