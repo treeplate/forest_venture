@@ -85,7 +85,7 @@ void main() {
         skip: !Platform.isMacOS,
       );
 
-      testWidgets('Move 2x2 unit tests', (WidgetTester tester) async {
+      testWidgets('Move unit tests', (WidgetTester tester) async {
         final WorldSource source = TestWorldSource("1 1\n...\nmunit\n  |\n  |");
         World world;
         Completer<void> completer = Completer<void>();

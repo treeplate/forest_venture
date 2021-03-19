@@ -36,13 +36,15 @@ class WorldSource extends ChangeNotifier {
 
 class World extends ChangeNotifier {
   World(this.width, this.cells, this._playerPos, this.to, this.worldSource,
-      this.name, this.messageIDs, this.messages): _initialPos = _playerPos {
+      this.name, this.messageIDs, this.messages)
+      : _initialPos = _playerPos {
     //print("World.to: '$to'");
     _checkForMessage(atOffset(_playerPos));
   }
   World.fromHeight(int height, this.cells, this._playerPos, this.to,
       this.worldSource, this.name, this.messageIDs, this.messages)
-      : this.width = cells.length ~/ height, _initialPos = _playerPos {
+      : this.width = cells.length ~/ height,
+        _initialPos = _playerPos {
     //print("World.to fromHeight: '$to'");
     _checkForMessage(atOffset(_playerPos));
   }
@@ -85,7 +87,8 @@ class World extends ChangeNotifier {
         dir == Direction.w() ||
             dir == Direction.s() ||
             dir == Direction.a() ||
-            dir == Direction.d(),
+            dir == Direction.d() ||
+            dir == Direction(0, 0),
         "is $dir");
     var nextOffset = atOffset(_playerPos + dir.toOffset());
     if (!(nextOffset?.canMove ?? false)) return;
@@ -100,7 +103,7 @@ class World extends ChangeNotifier {
       worldSource.initWorld(to);
     } else if (newCell is! Empty) {
       if (_playerPos == oldPos) return;
-      move(att.dir);
+      move(Direction(0, 0));
     }
   }
 
@@ -242,7 +245,8 @@ class World extends ChangeNotifier {
     );
   }
   String toString() =>
-      "$playerX $playerY\n$to\n" + cells.join('').split("null").join("|\n");
+      "$playerX $playerY\n$name\n$to\n" +
+      cells.join('').split("null").join("|\n");
   Cell at(int x, int y) {
     try {
       return cells[x + (y * width)];
