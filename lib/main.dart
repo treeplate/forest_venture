@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide Threshold;
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 
 import 'world.dart';
@@ -10,7 +11,10 @@ Future<String> loader(String name) =>
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   WorldSource source = WorldSource(loader);
-  runApp(ForestVenture(source: source));
+  runApp(Container(
+    child: ForestVenture(source: source),
+    color: Colors.black,
+  ));
 }
 
 class ForestVenture extends StatelessWidget {
@@ -62,13 +66,8 @@ class GoalCellState extends CellState {
   GoalCellState() : super(Colors.brown.withAlpha(50));
   void paint(Canvas canvas, Size cellSize, Offset cellOrigin) {
     super.paint(canvas, cellSize, cellOrigin);
-    canvas.drawOval(cellOrigin & cellSize, Paint()..color = Colors.brown[700]);
-    canvas.drawRect(
-        Offset(0, cellSize.height / 2) + cellOrigin &
-            Size(cellSize.width, cellSize.height / 2),
-        Paint()..color = Colors.brown[700]);
-    canvas.drawCircle(cellSize.center(cellOrigin) + Offset(10, 0), 5,
-        Paint()..color = Colors.brown[900]);
+    canvas.drawOval(cellOrigin & cellSize, Paint()..color = Colors.black);
+    canvas.drawOval(cellOrigin & cellSize, Paint()..style = PaintingStyle.stroke..color=Colors.green);
   }
 }
 
@@ -124,7 +123,11 @@ class TreeCellState extends CellState {
       Paint()..color = Colors.brown[800],
     );
     */
-    canvas.drawCircle(cellSize.center(cellOrigin), cellSize.width/2, Paint()..color = Colors.green.withAlpha(50));
+    canvas.drawCircle(
+      cellSize.center(cellOrigin),
+      cellSize.width / 2,
+      Paint()..color = Colors.green.withAlpha(50),
+    );
   }
   /*
   static Path _triangle(Size cellSize) {
@@ -157,14 +160,19 @@ abstract class WorldState {
     if (t == 1.0) {
       return b.lerpEnd();
     }
-    if (b.runtimeType == a.runtimeType)
-      return a.lerpTo(b, t);
+    if (b.runtimeType == a.runtimeType) return a.lerpTo(b, t);
     return MultiWorldState.lerp(a, b, t);
   }
 }
 
 class ActiveWorldState extends WorldState {
-  const ActiveWorldState(this.name, this.width, this.grid, this.offset, this.message);
+  const ActiveWorldState(
+    this.name,
+    this.width,
+    this.grid,
+    this.offset,
+    this.message,
+  );
 
   factory ActiveWorldState.fromWorld(World world) {
     return ActiveWorldState(
@@ -239,9 +247,7 @@ class EmptyWorldState extends WorldState {
   String get message => 'Loading...';
 
   @override
-  void paint(Canvas canvas, Size size, Size cellSize) {
-    canvas.drawRect(Offset.zero & size, Paint()..color = Colors.blue);
-  }
+  void paint(Canvas canvas, Size size, Size cellSize) {}
 
   WorldState lerpTo(EmptyWorldState b, double t) {
     return b;
@@ -267,7 +273,12 @@ class MultiWorldState extends WorldState {
       final double t = ts[index];
       final int alpha = (0xFF * t).round();
       if (alpha > 0x00) {
-        canvas.saveLayer(null, Paint()..colorFilter = ColorFilter.mode(Color(alpha << 24), BlendMode.dstATop));
+        canvas.saveLayer(
+          null,
+          Paint()
+            ..colorFilter =
+                ColorFilter.mode(Color(alpha << 24), BlendMode.dstATop),
+        );
         world.paint(canvas, size, cellSize);
         canvas.restore();
       }
@@ -294,7 +305,10 @@ class MultiWorldState extends WorldState {
     // next one got merged into last one, so just replace the last one
     return MultiWorldState(
       worlds.take(worlds.length - 1).followedBy(<WorldState>[last]).toList(),
-      ts.take(ts.length - 1).map((double t0) => t0 * (1.0 - t)).followedBy(<double>[t]).toList(),
+      ts
+          .take(ts.length - 1)
+          .map((double t0) => t0 * (1.0 - t))
+          .followedBy(<double>[t]).toList(),
     );
   }
 
@@ -313,7 +327,10 @@ class MultiWorldState extends WorldState {
     }
     if (b is MultiWorldState) {
       assert(a is! MultiWorldState);
-      return MultiWorldState(<WorldState>[a, ...b.worlds], <double>[1.0 - t, ...b.ts.map((double t0) => t0 * t)]);
+      return MultiWorldState(
+        <WorldState>[a, ...b.worlds],
+        <double>[1.0 - t, ...b.ts.map((double t0) => t0 * t)],
+      );
     }
     assert(a is! MultiWorldState);
     assert(b is! MultiWorldState);
@@ -388,7 +405,9 @@ class _GamePageState extends State<GamePage> {
   void _handleWorldUpdate() {
     setState(() {
       _animating = _currentFrame != null;
-      _currentFrame = _world == null ? const EmptyWorldState() : ActiveWorldState.fromWorld(_world);
+      _currentFrame = _world == null
+          ? const EmptyWorldState()
+          : ActiveWorldState.fromWorld(_world);
     });
   }
 
@@ -546,7 +565,10 @@ class _GamePageState extends State<GamePage> {
                       right: 0.0,
                       child: IgnorePointer(
                         child: AnimatedSwitcher(
-                          layoutBuilder: (Widget currentChild, List<Widget> previousChildren) {
+                          layoutBuilder: (
+                            Widget currentChild,
+                            List<Widget> previousChildren,
+                          ) {
                             return Stack(
                               alignment: Alignment.bottomCenter,
                               children: <Widget>[

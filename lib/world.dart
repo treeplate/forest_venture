@@ -266,6 +266,9 @@ class World extends ChangeNotifier {
 
   void reset() {
     _playerPos = _initialPos;
+    _currentMessage = "Reset.";
+    _nextMessage = 0;
+    _checkForMessage(atOffset(_playerPos));
     notifyListeners();
   }
 }
