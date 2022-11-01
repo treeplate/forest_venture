@@ -1,12 +1,15 @@
-6 0
 l5
 l4
-TTTTTTaTTTTTT| You continue
-TTTTTTvTTTTTT| searching,
-TTTTv< TTTTTT| following the
-TTTTvTvTTTTTT| complicated
-TTTTbTGTTTTTT| path.
-TTTTTTTTTTTTT|
 
-a You continue searching, following the complicated path.
-b Dead end! Better restart the level.
+TTTTTTTTT
+TTTTTTTTT
+TT   TTTT
+TT T#  TT
+TT T#  TT
+TT     TT
+TT  a  TT
+TT_ G _TT
+TTTTTTTTT
+
+
+a You may need to reset the level. (l4)

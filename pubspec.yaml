@@ -14,7 +14,7 @@ description: A new Flutter project.
 version: 1.0.0
 
 environment:
-  sdk: ">=2.9.0 <3.0.0"
+  sdk: ">=2.13.0 <3.0.0"
 
 dependencies:
   flutter:
@@ -36,9 +36,33 @@ flutter:
   uses-material-design: true
 
   assets:
-     - worlds/main.world
+     - worlds/l1.world
      - worlds/l2.world
      - worlds/l3.world
      - worlds/l4.world
      - worlds/l5.world
+     - worlds/l6.world
+     - worlds/l7.world
+     - worlds/l8.world
+     - worlds/l9.world
+     - worlds/l10.world
+     - worlds/l11.world
+     - worlds/l12.world
+     - worlds/l13.world
+     - worlds/l14.world
+     - worlds/l15.world
+     - worlds/l16.world
+     - worlds/l17.world
+     - worlds/multi0.world
+     - worlds/multi1.world
+     - worlds/multi2.world
+     - worlds/multi3.world
+     - worlds/multi4.world
+     - worlds/multi5.world
+     - worlds/multi6.world
+     - worlds/multi7.world
+     - worlds/multi8.world
+     - worlds/multi9.world
+     - worlds/multi10.world
+     - worlds/multi11.world
      - worlds/end.world

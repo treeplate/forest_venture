@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide Threshold;
-import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 
 import 'world.dart';
@@ -18,7 +17,7 @@ void main() {
 }
 
 class ForestVenture extends StatelessWidget {
-  ForestVenture({Key key, this.source}) : super(key: key);
+  ForestVenture({Key? key, required this.source}) : super(key: key);
   final WorldSource source;
 
   @override
@@ -33,19 +32,17 @@ class ForestVenture extends StatelessWidget {
 @immutable
 class CellState {
   const CellState(this.backgroundColor);
-  factory CellState.fromCell(Cell cell) {
+  factory CellState.fromCell(Cell? cell) {
     switch (cell.runtimeType) {
       case Null:
         return CellState(Colors.black.withAlpha(50));
       case Empty:
       case Threshold:
         return CellState(Colors.brown.withAlpha(50));
-      case Goal:
-        return GoalCellState();
-      case Tree:
-        return TreeCellState();
-      case OneWay:
-        return ArrowCellState((cell as OneWay).dir);
+      case PlayerGoal:
+        return PlayerGoalCellState();
+      case BoxGoal:
+        return BoxGoalCellState();
       default:
         throw UnimplementedError("Unknown ${cell.runtimeType}");
     }
@@ -62,57 +59,48 @@ class CellState {
   }
 }
 
-class GoalCellState extends CellState {
-  GoalCellState() : super(Colors.brown.withAlpha(50));
+class BoxGoalCellState extends CellState {
+  BoxGoalCellState() : super(Colors.brown.withAlpha(50));
+  void paint(Canvas canvas, Size cellSize, Offset cellOrigin) {
+    super.paint(canvas, cellSize, cellOrigin);
+    canvas.drawRect(cellOrigin & cellSize, Paint()..color = Colors.black);
+    canvas.drawRect(
+      cellOrigin & cellSize,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..color = Colors.green,
+    );
+  }
+}
+
+class PlayerGoalCellState extends CellState {
+  PlayerGoalCellState() : super(Colors.brown.withAlpha(50));
   void paint(Canvas canvas, Size cellSize, Offset cellOrigin) {
     super.paint(canvas, cellSize, cellOrigin);
     canvas.drawOval(cellOrigin & cellSize, Paint()..color = Colors.black);
-    canvas.drawOval(cellOrigin & cellSize, Paint()..style = PaintingStyle.stroke..color=Colors.green);
+    canvas.drawOval(
+        cellOrigin & cellSize,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..color = Colors.green);
   }
 }
 
-class ArrowCellState extends CellState {
-  ArrowCellState(this.dir) : super(Colors.brown.withAlpha(50));
-  final Direction dir;
+class TreeObjectState extends ObjectState {
+  TreeObjectState(Offset position, SolidObject source)
+      : super(position, source);
 
   @override
-  void paint(Canvas canvas, Size cellSize, Offset cellOrigin) {
-    super.paint(canvas, cellSize, cellOrigin);
-    Path p = Path();
-    p.moveTo(cellOrigin.dx, cellOrigin.dy);
-    p.lineTo(
-      cellOrigin.dx + cellSize.width,
-      cellOrigin.dy + (cellSize.height / 2),
-    );
-    p.lineTo(cellOrigin.dx, cellOrigin.dy + cellSize.height);
-    Offset center = cellSize.center(cellOrigin);
-    canvas.save();
-    canvas.translate(center.dx, center.dy);
-    var radians = dir.toRadians();
-    canvas.rotate(radians);
-    canvas.translate(-center.dx, -center.dy);
-    canvas.drawPath(
-      p,
-      ((Paint()..color = Colors.orange)..style = PaintingStyle.stroke)
-        ..strokeWidth = 5,
-    );
-    canvas.restore();
-  }
-}
+  void paint(Canvas canvas, Size cellSize, Offset gridOrigin) {
+    Offset cellOrigin =
+        (position.scale(cellSize.width, cellSize.height)) + gridOrigin;
 
-class TreeCellState extends CellState {
-  TreeCellState() : super(Colors.brown.withAlpha(50));
-
-  @override
-  void paint(Canvas canvas, Size cellSize, Offset cellOrigin) {
-    super.paint(canvas, cellSize, cellOrigin);
-    /*
     Rect treeRect = (cellOrigin & cellSize).deflate(cellSize.longestSide * 0.1);
     canvas.drawPath(
       Path()
         ..addPath(_triangle(Size(treeRect.width, treeRect.height * 0.75)),
             treeRect.topLeft),
-      Paint()..color = Colors.green[900],
+      Paint()..color = Colors.green[900]!,
     );
     canvas.drawRect(
       Rect.fromLTWH(
@@ -120,23 +108,22 @@ class TreeCellState extends CellState {
           treeRect.top + treeRect.height * 0.75,
           treeRect.width * 0.2,
           treeRect.height * 0.25),
-      Paint()..color = Colors.brown[800],
-    );
-    */
-    canvas.drawCircle(
-      cellSize.center(cellOrigin),
-      cellSize.width / 2,
-      Paint()..color = Colors.green.withAlpha(50),
+      Paint()..color = Colors.brown[800]!,
     );
   }
-  /*
+
   static Path _triangle(Size cellSize) {
     return Path()
       ..moveTo(0.5 * cellSize.width, 0)
       ..lineTo(cellSize.width, cellSize.height)
       ..lineTo(0, cellSize.height);
   }
-  */
+
+  @override
+  ObjectState lerpTo(ObjectState b, double t) {
+    assert(b is TreeObjectState);
+    return TreeObjectState(Offset.lerp(position, b.position, t)!, source);
+  }
 }
 
 @immutable
@@ -145,15 +132,12 @@ abstract class WorldState {
 
   String get message;
 
-  void paint(Canvas canvas, Size size, Size cellSize);
+  void paint(Canvas canvas, Size size, Size cellSize, {bool cloneMode});
 
   WorldState lerpTo(covariant WorldState b, double t);
   WorldState lerpEnd() => this;
 
   static WorldState lerp(WorldState a, WorldState b, double t) {
-    assert(t != null);
-    assert(a != null);
-    assert(b != null);
     if (t == 0.0) {
       return a;
     }
@@ -166,23 +150,46 @@ abstract class WorldState {
 }
 
 class ActiveWorldState extends WorldState {
+  final Room room;
+  final int nesting;
+
   const ActiveWorldState(
     this.name,
     this.width,
     this.grid,
-    this.offset,
+    this.objects,
     this.message,
+    this.room,
+    this.nesting,
   );
 
-  factory ActiveWorldState.fromWorld(World world) {
+  factory ActiveWorldState.fromWorld(World ttworld, int roomIndex) {
+    return ActiveWorldState.fromRoom(
+      ttworld,
+      ttworld.rooms[roomIndex],
+      0,
+    );
+  }
+
+  factory ActiveWorldState.fromRoom(
+    World ttworld,
+    Room world,
+    int nesting,
+  ) {
     return ActiveWorldState(
-      world.name,
+      ttworld.name,
       world.width,
       world.cells
-          .map<CellState>((Cell cell) => CellState.fromCell(cell))
+          .map<CellState>((Cell? cell) => CellState.fromCell(cell))
           .toList(),
-      Offset(world.playerX + 0.5, world.playerY + 0.5),
-      world.currentMessage,
+      ttworld.objects
+          .where((element) => element.position.room == world)
+          .map<ObjectState>((SolidObject? cell) =>
+              ObjectState.fromObject(cell, ttworld, nesting))
+          .toList(),
+      ttworld.currentMessage,
+      world,
+      nesting,
     );
   }
 
@@ -190,18 +197,20 @@ class ActiveWorldState extends WorldState {
   final int width;
   int get height => grid.length ~/ width;
   final List<CellState> grid;
-  final Offset offset;
+  final List<ObjectState> objects;
 
   @override
   final String message;
 
   @override
-  void paint(Canvas canvas, Size size, Size cellSize) {
+  void paint(Canvas canvas, Size size, Size cellSize,
+      {bool cloneMode = false}) {
     Offset worldOrigin = Offset(
-      size.width / 2.0 - (offset.dx) * cellSize.width,
-      size.height / 2.0 - (offset.dy) * cellSize.height,
+      (size.width / 2.0) - (width / 2 * cellSize.width),
+      (size.height / 2.0) - (height / 2 * cellSize.height),
     );
-    canvas.drawRect(Offset.zero & size, Paint()..color = Colors.black);
+    canvas.drawRect(Offset.zero & size,
+        Paint()..color = cloneMode ? Colors.blueGrey : Colors.black);
     for (int y = 0; y < height; y += 1) {
       for (int x = 0; x < width; x += 1) {
         grid[x + y * width].paint(
@@ -211,33 +220,176 @@ class ActiveWorldState extends WorldState {
         );
       }
     }
-    _paintPerson(
-      canvas,
-      cellSize,
-      size.center(Offset.zero) - cellSize.center(Offset.zero),
-    );
+    _paintObjects(canvas, cellSize, worldOrigin);
   }
 
-  void _paintPerson(Canvas canvas, Size cellSize, Offset cellOrigin) {
-    canvas.drawCircle(
-      cellSize.center(cellOrigin),
-      cellSize.shortestSide / 2.0,
-      Paint()..color = Colors.yellow,
-    );
+  void _paintObjects(Canvas canvas, Size cellSize, Offset worldOrigin) {
+    for (ObjectState objectState in objects) {
+      objectState.paint(canvas, cellSize, worldOrigin);
+    }
   }
 
   WorldState lerpTo(ActiveWorldState b, double t) {
-    if (name == b.name) {
+    if (room == b.room) {
       assert(width == b.width);
+      assert(name == b.name);
+      assert(nesting == b.nesting);
       return ActiveWorldState(
         b.name,
         b.width,
-        b.grid, // TODO(ianh): lerp grid
-        Offset.lerp(offset, b.offset, t),
+        b.grid,
+        lerpObjects(objects, b.objects, t).toList(),
         b.message, // message is animated by the message UI
+        b.room,
+        b.nesting,
       );
     }
     return MultiWorldState.lerp(this, b, t);
+  }
+}
+
+Iterable<ObjectState> lerpObjects(
+    List<ObjectState> a, List<ObjectState> b, double t) sync* {
+  List<ObjectState> bR = b.toList();
+  for (ObjectState aO in a) {
+    ObjectState? match;
+    for (ObjectState bO in bR) {
+      if (bO.source == aO.source) {
+        yield aO.lerpTo(bO, t);
+        match = bO;
+        break;
+      }
+    }
+    if (match == null) {
+      yield aO;
+    } else {
+      bR.remove(match);
+    }
+  }
+  yield* bR;
+}
+
+abstract class ObjectState {
+  ObjectState(this.position, this.source); // for subclasses
+  final Offset position;
+  final SolidObject source;
+
+  void paint(Canvas canvas, Size size, Offset gridOrigin);
+
+  factory ObjectState.fromObject(SolidObject? cell, World world, int nesting) {
+    // for conversion from SolidObject
+    switch (cell.runtimeType) {
+      case Player:
+        return PlayerObjectState(cell!.position.toOffset(), cell as Player);
+      case Box:
+        return BoxObjectState(cell!.position.toOffset(), cell);
+      case Tree:
+        return TreeObjectState(cell!.position.toOffset(), cell);
+      case Portal:
+        return PortalObjectState(
+            cell!.position.toOffset(), cell as Portal, world, nesting);
+      case FullPortal:
+        return PortalObjectState(
+            cell!.position.toOffset(), cell as Portal, world, nesting);
+      default:
+        throw StateError("Unrecognized ${cell.runtimeType} cell");
+    }
+  }
+
+  static ObjectState lerp(ObjectState a, ObjectState b, double t) {
+    return a.lerpTo(b, t);
+  }
+
+  ObjectState lerpTo(ObjectState b, double t);
+}
+
+class PortalObjectState extends ObjectState {
+  final WorldState? worldState;
+  final World world;
+
+  final int nesting;
+
+  PortalObjectState(Offset position, Portal source, this.world, this.nesting,
+      [WorldState? worldState])
+      : worldState = worldState ??
+            (nesting < 3
+                ? ActiveWorldState.fromRoom(
+                    world,
+                    world.rooms[source.roomIndex],
+                    nesting + 1,
+                  )
+                : null),
+        super(position, source);
+
+  @override
+  ObjectState lerpTo(ObjectState b, double t) {
+    assert(b is PortalObjectState);
+    if (worldState != null) {
+      WorldState nws = worldState!.lerpTo(
+        (b as PortalObjectState).worldState!,
+        t,
+      );
+      return PortalObjectState(Offset.lerp(position, b.position, t)!,
+          source as Portal, world, (nws as ActiveWorldState).nesting, nws);
+    } else {
+      return PortalObjectState(Offset.lerp(position, b.position, t)!,
+          source as Portal, world, nesting, null);
+    }
+  }
+
+  @override
+  void paint(Canvas canvas, Size size, Offset gridOrigin) {
+    canvas.drawRect(
+        (Offset(position.dx * size.width, position.dy * size.height) +
+                    gridOrigin) -
+                Offset(1, 1) &
+            size + Offset(2, 2),
+        Paint()..color = Colors.blue);
+    if (worldState != null) {
+      canvas.save();
+      canvas.translate(
+        gridOrigin.dx + (size.width * position.dx),
+        gridOrigin.dy + (size.height * position.dy),
+      );
+      worldState!.paint(canvas, size,
+          size / (world.rooms[(source as Portal).roomIndex].width / 1),
+          cloneMode: source is! FullPortal);
+      canvas.restore();
+    }
+  }
+}
+
+class BoxObjectState extends ObjectState {
+  BoxObjectState(Offset position, SolidObject source) : super(position, source);
+
+  @override
+  ObjectState lerpTo(ObjectState b, double t) {
+    assert(b is BoxObjectState);
+    return BoxObjectState(Offset.lerp(position, b.position, t)!, source);
+  }
+
+  @override
+  void paint(Canvas canvas, Size size, Offset gridOrigin) {
+    Offset cellOrigin = (position.scale(size.width, size.height)) + gridOrigin;
+    canvas.drawRect(cellOrigin & size, Paint()..color = Colors.blue);
+  }
+}
+
+class PlayerObjectState extends ObjectState {
+  PlayerObjectState(Offset position, Player source) : super(position, source);
+
+  @override
+  void paint(Canvas canvas, Size size, Offset gridOrigin) {
+    Offset cellOrigin = (position.scale(size.width, size.height)) + gridOrigin;
+    canvas.drawCircle(cellOrigin + (size / 2).bottomRight(Offset.zero),
+        size.width / 2, Paint()..color = Colors.yellow);
+  }
+
+  @override
+  ObjectState lerpTo(ObjectState b, double t) {
+    assert(b is PlayerObjectState);
+    return PlayerObjectState(
+        Offset.lerp(position, b.position, t)!, source as Player);
   }
 }
 
@@ -247,7 +399,7 @@ class EmptyWorldState extends WorldState {
   String get message => 'Loading...';
 
   @override
-  void paint(Canvas canvas, Size size, Size cellSize) {}
+  void paint(Canvas canvas, Size size, Size cellSize, {bool? cloneMode}) {}
 
   WorldState lerpTo(EmptyWorldState b, double t) {
     return b;
@@ -267,7 +419,8 @@ class MultiWorldState extends WorldState {
   final List<double> ts;
 
   @override
-  void paint(Canvas canvas, Size size, Size cellSize) {
+  void paint(Canvas canvas, Size size, Size cellSize,
+      {bool cloneMode = false}) {
     for (int index = 0; index < worlds.length; index += 1) {
       final WorldState world = worlds[index];
       final double t = ts[index];
@@ -279,7 +432,7 @@ class MultiWorldState extends WorldState {
             ..colorFilter =
                 ColorFilter.mode(Color(alpha << 24), BlendMode.dstATop),
         );
-        world.paint(canvas, size, cellSize);
+        world.paint(canvas, size, cellSize, cloneMode: cloneMode);
         canvas.restore();
       }
     }
@@ -316,9 +469,6 @@ class MultiWorldState extends WorldState {
   WorldState lerpEnd() => worlds.last;
 
   static MultiWorldState lerp(WorldState a, WorldState b, double t) {
-    assert(t != null);
-    assert(a != null);
-    assert(b != null);
     assert(t != 0.0);
     assert(t != 1.0);
     if (a is MultiWorldState) {
@@ -341,16 +491,16 @@ class MultiWorldState extends WorldState {
 }
 
 class WorldStateTween extends Tween<WorldState> {
-  WorldStateTween({WorldState begin, WorldState end})
+  WorldStateTween({required WorldState begin, WorldState? end})
       : super(begin: begin, end: end);
 
   WorldState lerp(double t) {
-    return WorldState.lerp(begin, end, t);
+    return WorldState.lerp(begin!, end!, t);
   }
 }
 
 class GamePage extends StatefulWidget {
-  GamePage({Key key, this.source}) : super(key: key);
+  GamePage({Key? key, required this.source}) : super(key: key);
 
   final WorldSource source;
 
@@ -361,15 +511,35 @@ class GamePage extends StatefulWidget {
 enum MoveDirection { left, up, right, down }
 
 class MoveIntent extends Intent {
-  const MoveIntent(this.direction);
+  const MoveIntent(this.direction, this.player);
   final MoveDirection direction;
+  final int player;
+}
+
+class ResetIntent extends Intent {
+  const ResetIntent();
+}
+
+class UndoIntent extends Intent {
+  const UndoIntent();
+}
+
+class NextRoomIntent extends Intent {
+  const NextRoomIntent();
+}
+
+class PrevRoomIntent extends Intent {
+  const PrevRoomIntent();
 }
 
 class _GamePageState extends State<GamePage> {
-  World _world;
-  WorldState _currentFrame;
-  MoveDirection /*?*/ _pendingDirection;
+  World? _world;
+  WorldState? _currentFrame;
+  MoveDirection? _pendingDirection;
+  int _roomIndex = 0;
   bool _animating = false;
+
+  int? _pendingMovingPlayer;
 
   @override
   void initState() {
@@ -399,36 +569,41 @@ class _GamePageState extends State<GamePage> {
     _world?.removeListener(_handleWorldUpdate);
     _world = widget.source.currentWorld;
     _world?.addListener(_handleWorldUpdate);
+    _roomIndex = 0;
     _handleWorldUpdate();
   }
 
   void _handleWorldUpdate() {
     setState(() {
       _animating = _currentFrame != null;
+
       _currentFrame = _world == null
           ? const EmptyWorldState()
-          : ActiveWorldState.fromWorld(_world);
+          : ActiveWorldState.fromWorld(_world!, _roomIndex);
     });
   }
 
   void _handleAnimationEnd() {
     _animating = false;
     if (_pendingDirection != null) {
-      switch (_pendingDirection) {
+      Player? player =
+          _world?.objects.whereType<Player>().toList()[_pendingMovingPlayer!];
+      switch (_pendingDirection!) {
         case MoveDirection.left:
-          _world?.left();
+          _world?.left(player!);
           break;
         case MoveDirection.up:
-          _world?.up();
+          _world?.up(player!);
           break;
         case MoveDirection.right:
-          _world?.right();
+          _world?.right(player!);
           break;
         case MoveDirection.down:
-          _world?.down();
+          _world?.down(player!);
           break;
       }
       _pendingDirection = null;
+      _pendingMovingPlayer = null;
     }
   }
 
@@ -438,38 +613,104 @@ class _GamePageState extends State<GamePage> {
     return Shortcuts(
       shortcuts: <LogicalKeySet, Intent>{
         // WASD
-        LogicalKeySet(LogicalKeyboardKey.keyW):
-            const MoveIntent(MoveDirection.up),
-        LogicalKeySet(LogicalKeyboardKey.keyA):
-            const MoveIntent(MoveDirection.left),
-        LogicalKeySet(LogicalKeyboardKey.keyS):
-            const MoveIntent(MoveDirection.down),
-        LogicalKeySet(LogicalKeyboardKey.keyD):
-            const MoveIntent(MoveDirection.right),
+        LogicalKeySet(LogicalKeyboardKey.keyW): const MoveIntent(
+          MoveDirection.up,
+          0,
+        ),
+        LogicalKeySet(LogicalKeyboardKey.keyA): const MoveIntent(
+          MoveDirection.left,
+          0,
+        ),
+        LogicalKeySet(LogicalKeyboardKey.keyS): const MoveIntent(
+          MoveDirection.down,
+          0,
+        ),
+        LogicalKeySet(LogicalKeyboardKey.keyD): const MoveIntent(
+          MoveDirection.right,
+          0,
+        ),
         // Dvorak WASD (A is the same as above)
-        LogicalKeySet(LogicalKeyboardKey.comma):
-            const MoveIntent(MoveDirection.up),
-        LogicalKeySet(LogicalKeyboardKey.keyO):
-            const MoveIntent(MoveDirection.down),
-        LogicalKeySet(LogicalKeyboardKey.keyE):
-            const MoveIntent(MoveDirection.right),
+        LogicalKeySet(LogicalKeyboardKey.comma): const MoveIntent(
+          MoveDirection.up,
+          0,
+        ),
+        LogicalKeySet(LogicalKeyboardKey.keyO): const MoveIntent(
+          MoveDirection.down,
+          0,
+        ),
+        LogicalKeySet(LogicalKeyboardKey.keyE): const MoveIntent(
+          MoveDirection.right,
+          0,
+        ),
         // Arrow keys
-        LogicalKeySet(LogicalKeyboardKey.arrowUp):
-            const MoveIntent(MoveDirection.up),
-        LogicalKeySet(LogicalKeyboardKey.arrowLeft):
-            const MoveIntent(MoveDirection.left),
-        LogicalKeySet(LogicalKeyboardKey.arrowDown):
-            const MoveIntent(MoveDirection.down),
-        LogicalKeySet(LogicalKeyboardKey.arrowRight):
-            const MoveIntent(MoveDirection.right),
+        LogicalKeySet(LogicalKeyboardKey.arrowUp): const MoveIntent(
+          MoveDirection.up,
+          1,
+        ),
+        LogicalKeySet(LogicalKeyboardKey.arrowLeft): const MoveIntent(
+          MoveDirection.left,
+          1,
+        ),
+        LogicalKeySet(LogicalKeyboardKey.arrowDown): const MoveIntent(
+          MoveDirection.down,
+          1,
+        ),
+        LogicalKeySet(LogicalKeyboardKey.arrowRight): const MoveIntent(
+          MoveDirection.right,
+          1,
+        ),
+        LogicalKeySet(LogicalKeyboardKey.keyR): const ResetIntent(),
+        LogicalKeySet(LogicalKeyboardKey.keyZ): const UndoIntent(),
+        LogicalKeySet(LogicalKeyboardKey.keyQ): const PrevRoomIntent(),
+        LogicalKeySet(LogicalKeyboardKey.keyE): const NextRoomIntent(),
       },
       child: Actions(
         actions: <Type, Action<Intent>>{
           MoveIntent: CallbackAction<MoveIntent>(onInvoke: (MoveIntent intent) {
             _pendingDirection = intent.direction;
+            _pendingMovingPlayer = intent.player;
             if (!_animating) {
               _handleAnimationEnd();
             }
+            return null;
+          }),
+          ResetIntent:
+              CallbackAction<ResetIntent>(onInvoke: (ResetIntent intent) {
+            _world?.reset();
+            if (!_animating) {
+              _handleAnimationEnd();
+            }
+            return null;
+          }),
+          UndoIntent: CallbackAction<UndoIntent>(onInvoke: (UndoIntent intent) {
+            if (!_animating) {
+              _handleAnimationEnd();
+            }
+            _world?.undo();
+            return null;
+          }),
+          PrevRoomIntent:
+              CallbackAction<PrevRoomIntent>(onInvoke: (PrevRoomIntent intent) {
+            if (_roomIndex == 0) {
+              _roomIndex = _world?.rooms.length ?? 1;
+            }
+            _roomIndex--;
+            if (!_animating) {
+              _handleAnimationEnd();
+            }
+            _handleWorldUpdate();
+            return null;
+          }),
+          NextRoomIntent:
+              CallbackAction<NextRoomIntent>(onInvoke: (NextRoomIntent intent) {
+            _roomIndex++;
+            if (_roomIndex == (_world?.rooms.length ?? 1)) {
+              _roomIndex = 0;
+            }
+            if (!_animating) {
+              _handleAnimationEnd();
+            }
+            _handleWorldUpdate();
             return null;
           }),
         },
@@ -480,7 +721,7 @@ class _GamePageState extends State<GamePage> {
               child: AnimatedWorldCanvas(
                 duration: const Duration(milliseconds: 250),
                 curve: Curves.easeIn,
-                world: _currentFrame,
+                world: _currentFrame!,
                 onEnd: _handleAnimationEnd,
                 child: Stack(
                   children: <Widget>[
@@ -494,7 +735,7 @@ class _GamePageState extends State<GamePage> {
                           type: MaterialType.transparency,
                           child: InkWell(onTap: () {
                             Actions.invoke(
-                                context, MoveIntent(MoveDirection.up));
+                                context, MoveIntent(MoveDirection.up, 0));
                           }),
                         )),
                     ClipPath(
@@ -507,7 +748,7 @@ class _GamePageState extends State<GamePage> {
                         type: MaterialType.transparency,
                         child: InkWell(onTap: () {
                           Actions.invoke(
-                              context, MoveIntent(MoveDirection.right));
+                              context, MoveIntent(MoveDirection.right, 0));
                         }),
                       ),
                     ),
@@ -521,7 +762,7 @@ class _GamePageState extends State<GamePage> {
                         type: MaterialType.transparency,
                         child: InkWell(onTap: () {
                           Actions.invoke(
-                              context, MoveIntent(MoveDirection.down));
+                              context, MoveIntent(MoveDirection.down, 0));
                         }),
                       ),
                     ),
@@ -535,7 +776,7 @@ class _GamePageState extends State<GamePage> {
                         type: MaterialType.transparency,
                         child: InkWell(onTap: () {
                           Actions.invoke(
-                              context, MoveIntent(MoveDirection.left));
+                              context, MoveIntent(MoveDirection.left, 0));
                         }),
                       ),
                     ),
@@ -566,7 +807,7 @@ class _GamePageState extends State<GamePage> {
                       child: IgnorePointer(
                         child: AnimatedSwitcher(
                           layoutBuilder: (
-                            Widget currentChild,
+                            Widget? currentChild,
                             List<Widget> previousChildren,
                           ) {
                             return Stack(
@@ -580,17 +821,17 @@ class _GamePageState extends State<GamePage> {
                           duration: const Duration(milliseconds: 350),
                           switchInCurve: Curves.easeIn,
                           switchOutCurve: Curves.easeOut,
-                          child: _currentFrame.message.isEmpty
+                          child: _currentFrame!.message.isEmpty
                               ? SizedBox.shrink()
                               : Container(
-                                  key: Key(_currentFrame.message),
+                                  key: Key(_currentFrame!.message),
                                   padding: EdgeInsets.all(24.0),
                                   decoration: ShapeDecoration(
                                     shape: StadiumBorder(),
                                     color: const Color(0x7F000000),
                                   ),
                                   child: Text(
-                                    _currentFrame.message,
+                                    _currentFrame!.message,
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
                                       inherit: false,
@@ -636,12 +877,12 @@ class PolygonClipper extends CustomClipper<Path> {
 
 class AnimatedWorldCanvas extends ImplicitlyAnimatedWidget {
   AnimatedWorldCanvas({
-    Key key,
-    this.world,
+    Key? key,
+    required this.world,
     Curve curve: Curves.linear,
-    @required Duration duration,
-    VoidCallback onEnd,
-    this.child,
+    required Duration duration,
+    required VoidCallback onEnd,
+    required this.child,
   }) : super(key: key, curve: curve, duration: duration, onEnd: onEnd);
 
   final WorldState world;
@@ -653,7 +894,7 @@ class AnimatedWorldCanvas extends ImplicitlyAnimatedWidget {
 
 class _AnimatedWorldCanvasState
     extends AnimatedWidgetBaseState<AnimatedWorldCanvas> {
-  Tween<WorldState> _world;
+  Tween<WorldState>? _world;
 
   @override
   void forEachTween(TweenVisitor<dynamic> visitor) {
@@ -667,14 +908,15 @@ class _AnimatedWorldCanvasState
   @override
   Widget build(BuildContext context) {
     return WorldCanvas(
-      world: _world.evaluate(animation),
+      world: _world!.evaluate(animation),
       child: widget.child,
     );
   }
 }
 
 class WorldCanvas extends StatefulWidget {
-  WorldCanvas({Key key, this.world, this.child}) : super(key: key);
+  WorldCanvas({Key? key, required this.world, required this.child})
+      : super(key: key);
 
   final WorldState world;
 

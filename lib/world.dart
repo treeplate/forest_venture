@@ -1,18 +1,20 @@
-import 'package:flutter/foundation.dart';
-import 'dart:ui';
 import 'dart:math';
+import 'dart:ui' show Offset;
+import 'package:flutter/foundation.dart' show ChangeNotifier;
 
 typedef DataLoader = Future<String> Function(String name);
 
 class WorldSource extends ChangeNotifier {
   WorldSource(this.loader) {
-    initWorld('main');
+    initWorld(startingLevel);
   }
 
-  final DataLoader loader;
+  String get startingLevel => 'l1';
 
-  World _currentWorld;
-  World get currentWorld => _currentWorld;
+  final DataLoader? loader;
+
+  World? _currentWorld;
+  World? get currentWorld => _currentWorld;
 
   bool _disposed = false;
 
@@ -20,7 +22,7 @@ class WorldSource extends ChangeNotifier {
     assert(!_disposed);
     _currentWorld = null;
     notifyListeners();
-    final String data = await loader(newName);
+    final String data = await loader!(newName);
     if (!_disposed) {
       _currentWorld = World.parse(data, this);
       notifyListeners();
@@ -34,149 +36,84 @@ class WorldSource extends ChangeNotifier {
   }
 }
 
-class World extends ChangeNotifier {
-  World(this.width, this.cells, this._playerPos, this.to, this.worldSource,
-      this.name, this.messageIDs, this.messages)
-      : _initialPos = _playerPos {
-    //print("World.to: '$to'");
-    _checkForMessage(atOffset(_playerPos));
-  }
-  World.fromHeight(int height, this.cells, this._playerPos, this.to,
-      this.worldSource, this.name, this.messageIDs, this.messages)
-      : this.width = cells.length ~/ height,
-        _initialPos = _playerPos {
-    //print("World.to fromHeight: '$to'");
-    _checkForMessage(atOffset(_playerPos));
-  }
+int nc = 0;
 
-  final WorldSource worldSource;
-
-  final String name;
-  final int width;
-  final String to;
-
-  int get height {
-    assert(cells.length.isFinite);
-    assert(width.isFinite);
-    //print("l: ${cells.length}");
-    //print("w: $width");
-    return cells.length ~/ width;
-  }
-
-  Offset _playerPos;
-  final Offset _initialPos;
-  int get playerX => _playerPos.dx.toInt();
-  int get playerY => _playerPos.dy.toInt();
-
-  void left() {
-    move(Direction.a());
-  }
-
-  void up() {
-    move(Direction.w());
-  }
-
-  void right() {
-    move(Direction.d());
-  }
-
-  int x = 0;
-  int y = 0;
-  void move(Direction dir) {
-    assert(
-        dir == Direction.w() ||
-            dir == Direction.s() ||
-            dir == Direction.a() ||
-            dir == Direction.d() ||
-            dir == Direction(0, 0),
-        "is $dir");
-    var nextOffset = atOffset(_playerPos + dir.toOffset());
-    if (!(nextOffset?.canMove ?? false)) return;
-    MoveResult att = nextOffset?.move(_playerPos + dir.toOffset(), dir) ??
-        MoveResult(Direction(0, 0), Offset(-1, 0));
-    Offset oldPos = _playerPos;
-    _playerPos = isValid(att.newPos) ? att.newPos : _playerPos;
-    Cell newCell = atOffset(_playerPos);
-    _checkForMessage(newCell);
-    notifyListeners();
-    if (newCell is Goal) {
-      worldSource.initWorld(to);
-    } else if (newCell is! Empty) {
-      if (_playerPos == oldPos) return;
-      move(Direction(0, 0));
-    }
-  }
-
-  void down() {
-    move(Direction.s());
-  }
-
+class Room extends Object {
   final List<Cell> cells;
+  final int width;
+  Portal? holder;
+  final List<SolidObject> objs;
 
-  int _nextMessage = 0;
-  final List<String> messageIDs;
-  final Map<String, String> messages;
-  String get currentMessage => _currentMessage;
-  String _currentMessage = '';
+  Dimensions get dimensions => Dimensions(width, height);
 
-  void _checkForMessage(Cell cell) {
-    // caller must call notifyListeners if desired
-    if (cell is Threshold) {
-      if (_nextMessage < messageIDs.length) {
-        if (cell.id == messageIDs[_nextMessage]) {
-          _currentMessage = messages[messageIDs[_nextMessage]];
-          _nextMessage += 1;
-        }
-      }
+  Room(this.cells, this.width, this.objs);
+  Room.fromHeight(this.cells, int height, this.objs)
+      : this.width = cells.length ~/ height;
+  Cell? goalAt(int x, int y) {
+    try {
+      return cells[x + (y * width)];
+    } on RangeError {
+      return null;
     }
   }
 
-  factory World.parse(String rawData, WorldSource source) {
-    List<String> data = rawData.split('\n');
-    List<Cell> parsed = [];
+  factory Room.parse(Counter lineIndex, List<String> data,
+      List<SolidObject> o1s, Counter portalIndex, List<int> portals) {
     int height = 0;
-    List<String> xy = data.first.split(" ");
-    int x = int.parse(xy[0]);
-    int y = int.parse(xy[1]);
-    String to = data[1];
-    String name = data[2];
-    //print("parse($to)");
-    int lineIndex = 3;
+    int gN = 0;
+    List<Cell> goals = [];
+    List<SolidObject> o2s = [];
+    void objAdd(SolidObject obj) {
+      o2s.add(obj);
+      o1s.add(obj);
+    }
+
     rows:
-    for (; lineIndex < data.length; lineIndex += 1) {
-      String line = data[lineIndex];
+    for (;; lineIndex.i += 1) {
+      String line = data[lineIndex.i];
       if (line.isEmpty) {
         break rows;
       }
+      int x = 0;
       cols:
       for (String char in line.split('')) {
+        assert(goals.length == gN);
+        gN++;
         switch (char) {
           case " ":
-            parsed.add(Empty());
+            goals.add(Empty());
             break;
           case "G":
-            parsed.add(Goal());
+            goals.add(PlayerGoal());
+            break;
+          case "_":
+            goals.add(BoxGoal());
             break;
           case "T":
-            parsed.add(Tree());
+            goals.add(Empty());
+            objAdd(Tree(Position(x, height, true), nc++));
             break;
-          case ">":
-            parsed.add(OneWay(Direction.d()));
+          case "P":
+            goals.add(Empty());
+            objAdd(FullPortal(
+                Position(x, height, true), portals[portalIndex.i++], nc++));
             break;
-          case "<":
-            parsed.add(OneWay(Direction.a()));
+          case "C":
+            goals.add(Empty());
+            objAdd(Portal(
+                Position(x, height, true), portals[portalIndex.i++], nc++));
             break;
-          case "A":
-          case "∧":
-            parsed.add(OneWay(Direction.w()));
-            break;
-          case "v":
-            parsed.add(OneWay(Direction.s()));
+          case "#":
+            goals.add(Empty());
+            objAdd(Box(Position(x, height, true), nc++));
             break;
           case "|":
-            parsed.add(null);
+            gN--;
             break cols;
           case "a":
+            objAdd(Player(Position(x, height, true), nc++));
+            goals.add(Threshold(char));
+            break;
           case "b":
           case "c":
           case "d":
@@ -202,22 +139,308 @@ class World extends ChangeNotifier {
           case "x":
           case "y":
           case "z":
-            parsed.add(Threshold(char));
+            goals.add(Threshold(char));
             break;
           default:
             throw FormatException(
-                "Unexpected \"$char\"(${char.runes.first}) while parsing world on line $lineIndex");
+                "Unexpected \"$char\"(${char.runes.first}) while parsing room on line $lineIndex");
         }
+        x++;
       }
       height++;
     }
-    lineIndex += 1;
+    return Room.fromHeight(goals, height, o2s);
+  }
+
+  void populateObjects() {
+    for (SolidObject object in objs) {
+      object.position.room = this;
+    }
+  }
+
+  int get height {
+    //print("l: ${cells.length}");
+    //print("w: $width");
+    return cells.length ~/ width;
+  }
+
+  Position enterFrom(Direction inDir, Position? sub) {
+    if (inDir.x == 0) {
+      assert(inDir.y != 0);
+      assert(width % 2 == 1);
+      int x = sub?.x ?? (width / 2).floor();
+      int y = (inDir.y == 1 ? 0 : height - 1);
+      return Position.withRoom(x, y, this);
+    } else {
+      assert(inDir.y == 0);
+      assert(height % 2 == 1);
+      int y = sub?.y ?? (height / 2).floor();
+      int x = inDir.x == 1 ? 0 : width - 1;
+      return Position.withRoom(x, y, this);
+    }
+  }
+}
+
+class Portal extends Box {
+  final int roomIndex;
+
+  Portal(Position position, this.roomIndex, int code) : super(position, code);
+
+  String toString() => "room$roomIndex";
+
+  @override
+  SolidObject copy() {
+    return Portal(position, roomIndex, code);
+  }
+
+  @override
+  MoveResult move(Position pos, Direction inDir, World world) {
+    return MoveResult(true,
+        EnterResult(inDir, world.rooms[roomIndex].enterFrom(inDir, pos.sub)));
+  }
+}
+
+class FullPortal extends Portal {
+  FullPortal(Position position, int roomIndex, int code)
+      : super(position, roomIndex, code);
+
+  @override
+  SolidObject copy() {
+    return FullPortal(position, roomIndex, code);
+  }
+}
+
+class Counter extends Object {
+  int i = 0;
+  String toString() => i.toString();
+}
+
+int _temp_indent_ = 0;
+
+class World extends ChangeNotifier {
+  final List<Room> rooms;
+
+  bool innerPush = false;
+
+  World(this.rooms, this.objects, this.to, this.worldSource, this.name,
+      this.messageIDs, this.messages) {
+    //print("World.to: '$to'");
+    objects
+        .whereType<Player>()
+        .forEach((x) => _checkForMessage(goalAtPosition(x.position)));
+    history = [
+      objects.map((x) => x.copy()).toList(),
+    ];
+  }
+  late final List<List<SolidObject>> history;
+  final List<SolidObject> objects;
+  final WorldSource worldSource;
+
+  final String name;
+  final String to;
+  //int get playerX => _playerPos.x;
+  //int get playerY => _playerPos.y;
+
+  void Function(Position) updatePosCreator(SolidObject object) {
+    return (Position p) {
+      object.position = p..sub = null;
+    };
+  }
+
+  void left(Player player) {
+    move(Direction.a(), true, player.position, updatePosCreator(player));
+  }
+
+  void up(Player player) {
+    move(Direction.w(), true, player.position, updatePosCreator(player));
+  }
+
+  void right(Player player) {
+    move(Direction.d(), true, player.position, updatePosCreator(player));
+  }
+
+  bool move(Direction dir, bool doStart, final Position player,
+      void Function(Position) updatePos,
+      [bool handlePush = true, Set positions = const {}]) {
+    _temp_indent_++;
+    assert(
+        dir == Direction.w() ||
+            dir == Direction.s() ||
+            dir == Direction.a() ||
+            dir == Direction.d() ||
+            dir == Direction(0, 0),
+        "is $dir");
+    Position newPos = doStart ? player + dir : player;
+    SolidObject? nextOffset = atPosition(newPos, null);
+    if (!(nextOffset?.canMoveTo ?? true)) {
+      if (innerPush && player.room.holder != null) {
+        print(
+            '${'  ' * _temp_indent_}inner push (origoal $newPos / start $player / probably a tree $nextOffset)');
+
+        _temp_indent_--;
+        return move(dir, true, player.room.holder!.position,
+            updatePosCreator(player.room.holder!));
+      }
+      _currentMessage =
+          "You can't ever move to a ${nextOffset.runtimeType} (tried to move to $newPos)";
+      notifyListeners();
+      _temp_indent_--;
+      return false;
+    }
+    MoveResult att = nextOffset?.move(newPos, dir, this) ??
+        MoveResult(false, EnterResult(dir, newPos));
+    foo:
+    {
+      if (positions.contains(newPos)) {
+        //throw ('$newPos already exists');
+        //break foo; TODO
+      }
+      if (att.push && handlePush) {
+        if (move(dir, true, newPos, updatePosCreator(nextOffset!), true,
+            positions.toSet()..add(newPos))) {
+          break foo;
+        }
+        MoveResult eat =
+            nextOffset.move(newPos, dir.rotateLeft().rotateLeft(), this);
+        if (eat.push &&
+            move(
+                dir.rotateLeft().rotateLeft(),
+                false,
+                player,
+                updatePosCreator(nextOffset),
+                false,
+                positions.toSet()..add(newPos))) {
+          break foo;
+        }
+      }
+      if (att.enter != null) {
+        if (atPosition(att.enter!.newPos, null) == null) {
+          newPos = att.enter!.newPos;
+          break foo;
+        }
+        _temp_indent_--;
+        return move(
+          att.enter!.dir,
+          false,
+          att.enter!.newPos,
+          updatePos,
+          handlePush,
+        );
+      } else {
+        _currentMessage =
+            "Cannot move to $newPos - pushing the ${nextOffset.runtimeType} there did not succeed";
+        notifyListeners();
+        _temp_indent_--;
+        return false;
+      }
+    }
+    nextOffset = atPosition(newPos, null);
+    updatePos(newPos);
+    notifyListeners();
+    if (goalsDone()) {
+      Future.delayed(Duration(milliseconds: 500)).then((value) {
+        worldSource.initWorld(to);
+        notifyListeners();
+      });
+      _temp_indent_--;
+      return true;
+    }
+    _checkForMessage(goalAtPosition(player));
+    notifyListeners();
+    history.add(objects.map((e) => e.copy()).toList());
+    _temp_indent_--;
+    return true;
+  }
+
+  bool goalsDone() {
+    for (Room room in rooms) {
+      int x = 0;
+      int y = 0;
+      for (; x < room.width; x++) {
+        for (; y < room.height; y++) {
+          if (room.goalAt(x, y) is BoxGoal) {
+            bool fulf = false;
+            for (Box b in objects.whereType<Box>()) {
+              if (b.position == Position.withRoom(x, y, room)) {
+                fulf = true;
+              }
+            }
+            if (!fulf) {
+              return false;
+            }
+          }
+          if (room.goalAt(x, y) is PlayerGoal) {
+            bool fulf = false;
+            for (Player b in objects.whereType<Player>()) {
+              if (b.position == Position.withRoom(x, y, room)) {
+                fulf = true;
+              }
+            }
+            if (!fulf) {
+              return false;
+            }
+          }
+        }
+        y = 0;
+      }
+    }
+    return true;
+  }
+
+  void down(Player player) {
+    move(Direction.s(), true, player.position, updatePosCreator(player));
+  }
+
+  int _nextMessage = 0;
+  final List<String> messageIDs;
+  final Map<String, String> messages;
+  String get currentMessage => _currentMessage;
+  String _currentMessage = '';
+
+  void _checkForMessage(Cell? cell) {
+    // caller must call notifyListeners if desired
+    if (cell is Threshold) {
+      if (_nextMessage < messageIDs.length) {
+        if (cell.id == messageIDs[_nextMessage]) {
+          _currentMessage = messages[messageIDs[_nextMessage]]!;
+          _nextMessage += 1;
+        }
+      }
+    }
+  }
+
+  factory World.parse(String rawData, WorldSource source) {
+    List<String> data = rawData.split('\n');
+    List<SolidObject> objects = [];
+    List<Room> rooms = [];
+    String to = data[0];
+    String name = data[1];
+    Counter lineIndex = Counter()..i = 2;
+    List<int> portals = [];
+    //print("parse($to)");
+    while (data[lineIndex.i] != '') {
+      portals.add(int.parse(data[lineIndex.i]));
+      lineIndex.i += 1;
+    }
+    lineIndex.i += 1;
+    Counter portalIndex = Counter();
+    while (data[lineIndex.i] != '') {
+      rooms.add(Room.parse(lineIndex, data, objects, portalIndex, portals)
+        ..populateObjects());
+      lineIndex.i += 1;
+    }
+
+    for (FullPortal portal in objects.whereType<FullPortal>()) {
+      rooms[portal.roomIndex].holder = portal;
+    }
+
+    lineIndex.i += 1;
     // read messages
     final List<String> messageIDs = <String>[];
     final Map<String, String> messages = <String, String>{};
     messages:
-    for (; lineIndex < data.length; lineIndex += 1) {
-      String line = data[lineIndex];
+    for (; lineIndex.i < data.length; lineIndex.i += 1) {
+      String line = data[lineIndex.i];
       if (line.isEmpty) {
         break messages;
       }
@@ -233,10 +456,9 @@ class World extends ChangeNotifier {
       messageIDs.add(id);
       messages[id] = message;
     }
-    return World.fromHeight(
-      height,
-      parsed,
-      Offset(x.toDouble(), y.toDouble()),
+    return World(
+      rooms,
+      objects,
       to,
       source,
       name,
@@ -244,39 +466,54 @@ class World extends ChangeNotifier {
       messages,
     );
   }
-  String toString() =>
-      "$playerX $playerY\n$name\n$to\n" +
-      cells.join('').split("null").join("|\n");
-  Cell at(int x, int y) {
-    try {
-      return cells[x + (y * width)];
-    } on RangeError {
-      return null;
-    }
-  }
+  String toString() => "$objects\n$name\n$to\n" + rooms.join('\n\n');
 
-  Cell atOffset(Offset att) => at(att.dx.toInt(), att.dy.toInt());
-
-  bool isValid(Offset offset) {
-    return offset.dx < width - 1 &&
-        offset.dx >= 0 &&
-        offset.dy < height &&
-        offset.dy >= 0;
-  }
+  Cell? goalAtPosition(Position att) => att.room.goalAt(att.x, att.y);
 
   void reset() {
-    _playerPos = _initialPos;
+    objects.clear();
+    objects.addAll(history.first.map((x) => x.copy()));
     _currentMessage = "Reset.";
     _nextMessage = 0;
-    _checkForMessage(atOffset(_playerPos));
+    objects
+        .whereType<Player>()
+        .forEach((x) => _checkForMessage(goalAtPosition(x.position)));
+
+    for (FullPortal portal in objects.whereType<FullPortal>()) {
+      rooms[portal.roomIndex].holder = portal;
+    }
+    notifyListeners();
+  }
+
+  SolidObject? atPosition(Position position, SolidObject? player) {
+    for (SolidObject object in objects) {
+      if (object.position == position && object != player) {
+        return object;
+      }
+    }
+    return null;
+  }
+
+  void undo() {
+    if (history.length == 1) {
+      return;
+    }
+    objects.clear();
+    objects.addAll(history[history.length - 2].map((x) => x.copy()));
+    history.removeLast();
+    _currentMessage = "Reset.";
+    _nextMessage = 0;
+    objects
+        .whereType<Player>()
+        .forEach((x) => _checkForMessage(goalAtPosition(x.position)));
+    for (Portal portal in objects.whereType<Portal>()) {
+      rooms[portal.roomIndex].holder = portal;
+    }
     notifyListeners();
   }
 }
 
-abstract class Cell {
-  MoveResult move(Offset pos, Direction inDir) => MoveResult(inDir, pos);
-  bool get canMove => true;
-}
+abstract class Cell extends Object {}
 
 class Empty extends Cell {
   String toString() => " ";
@@ -288,40 +525,134 @@ class Threshold extends Empty {
   String toString() => id;
 }
 
-class Goal extends Cell {
+class PlayerGoal extends Cell {
   String toString() => "G";
 }
 
-class Tree extends Cell {
-  MoveResult move(Offset pos, Direction inDir) =>
-      MoveResult(Direction(-inDir.x, -inDir.y), pos - inDir.toOffset());
-  String toString() => "#";
-  bool get canMove => false;
+class BoxGoal extends Cell {
+  String toString() => "_";
 }
 
-class OneWay extends Cell {
-  OneWay(this.dir);
+abstract class SolidObject extends Object {
+  Position position;
+
+  final int code;
+
+  MoveResult move(Position pos, Direction inDir, World world);
+  bool get canMoveTo => true;
+
+  SolidObject copy();
+
+  SolidObject(this.position, this.code);
+}
+
+class Tree extends SolidObject {
+  Tree(Position position, int code) : super(position, code);
+
+  @override
+  MoveResult move(Position pos, Direction inDir, World world) =>
+      throw UnsupportedError('cannot move into a tree');
+  String toString() => "T";
+  bool get canMoveTo => false;
+
+  @override
+  SolidObject copy() {
+    return Tree(position, code);
+  }
+}
+
+class Player extends SolidObject {
+  Player(Position position, int code) : super(position, code);
+
+  @override
+  MoveResult move(Position pos, Direction inDir, World world) =>
+      MoveResult(true, null);
+
+  String toString() => "<player at $position>";
+
+  @override
+  SolidObject copy() {
+    return Player(position, code);
+  }
+}
+
+class Box extends SolidObject {
+  Box(Position position, int code) : super(position, code);
+
+  @override
+  MoveResult move(Position pos, Direction inDir, World world) =>
+      MoveResult(true, null);
+
+  @override
+  SolidObject copy() {
+    return Box(position, code);
+  }
+}
+
+class EnterResult extends Object {
   final Direction dir;
-  String toString() {
-    if (dir == Direction.s()) return "v";
-    if (dir == Direction.w()) return "∧";
-    if (dir == Direction.d()) return ">";
-    if (dir == Direction.a()) return "<";
-    throw UnimplementedError("Unknown direction ($dir)");
+  final Position newPos;
+
+  EnterResult(this.dir, this.newPos);
+}
+
+class MoveResult extends Object {
+  MoveResult(this.push, this.enter);
+  final bool push;
+  final EnterResult? enter;
+}
+
+class Position extends Object {
+  final int x;
+  final int y;
+  Position? sub;
+
+  late final Room room;
+  operator +(Direction other) {
+    Position newPos = Position.withRoom(
+      other.x + x,
+      other.y + y,
+      room,
+    );
+    if (room.dimensions.validPosition(newPos)) {
+      return newPos;
+    } else {
+      return (room.holder!.position + other)..sub = this;
+    }
   }
 
-  MoveResult move(Offset pos, Direction inDir) {
-    return MoveResult(dir, pos + dir.toOffset());
+  operator ==(Object other) =>
+      other is Position && other.x == x && other.y == y && other.room == room;
+
+  Offset toOffset() => Offset(x / 1, y / 1);
+
+  Position(this.x, this.y, [bool x2 = false]) : assert(x2);
+
+  String toString() => "$x, $y";
+
+  @override
+  int get hashCode => x.hashCode ^ (y.hashCode * 2) ^ 3;
+
+  Position.withRoom(this.x, this.y, this.room);
+}
+
+class Dimensions {
+  final int width;
+  final int height;
+
+  String toString() => "$width, $height";
+
+  Dimensions(this.width, this.height);
+
+  bool validPosition(Position position) {
+    return position.x < width &&
+        position.x >= 0 &&
+        position.y < height &&
+        position.y >= 0;
   }
 }
 
-class MoveResult {
-  MoveResult(this.dir, this.newPos);
-  final Direction dir;
-  final Offset newPos;
-}
-
-class Direction {
+class Direction extends Object {
   const Direction.w()
       : x = 0,
         y = -1;
@@ -339,7 +670,6 @@ class Direction {
   final int y;
   operator ==(Object direction) =>
       direction is Direction && direction.x == x && direction.y == y;
-  Offset toOffset() => Offset(x / 1, y / 1);
   double toRadians() {
     if (this == Direction.w()) return -pi / 2;
     if (this == Direction.a()) return pi;
@@ -348,15 +678,22 @@ class Direction {
     throw "Unknown Direction";
   }
 
+  String toString() {
+    if (this == Direction.w()) return "north";
+    if (this == Direction.a()) return "west";
+    if (this == Direction.s()) return "south";
+    if (this == Direction.d()) return "east";
+    throw "Unknown Direction";
+  }
+
   @override
-  // TODO(tree): implement hashCode
-  int get hashCode => super.hashCode;
+  int get hashCode => x.hashCode ^ (y.hashCode * 2);
 
   Direction rotateLeft() {
     if (this == Direction.d()) return Direction.w();
     if (this == Direction.w()) return Direction.a();
     if (this == Direction.a()) return Direction.s();
     if (this == Direction.s()) return Direction.d();
-    throw "Unnown Direction";
+    throw "Unknown Direction";
   }
 }

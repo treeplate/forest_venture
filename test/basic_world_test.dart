@@ -6,15 +6,29 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:forest_venture/main.dart';
 import 'package:forest_venture/world.dart';
 
-const String _emptyWorld = '0 0\n'
-    '...\n'
+const String _emptyWorld = '...\n'
     'empty\n'
-    ' ';
+    '\n'
+    'G\n'
+    '\n'
+    '\n'
+    'a ';
 
-const String _lineWorld = '0 0\n'
-    '...\n'
+const String _lineWorld = '...\n'
     'line\n'
-    '  T|';
+    '\n'
+    'Ga T\n'
+    '\n'
+    '\n'
+    'a ';
+const String _squareWorld = '...\n'
+    'munit\n\n'
+    'TTTTT\n'
+    'T  TT\n'
+    'T aTT\n'
+    'TTTTT\n'
+    'TTGTT\n\n\n'
+    'a munit';
 
 void main() {
   group(
@@ -86,39 +100,41 @@ void main() {
       );
 
       testWidgets('Move unit tests', (WidgetTester tester) async {
-        final WorldSource source = TestWorldSource("1 1\n...\nmunit\n  |\n  |");
-        World world;
-        Completer<void> completer = Completer<void>();
+        final WorldSource source = TestWorldSource(_squareWorld);
+
+        Completer<World> completer = Completer<World>();
         source.addListener(() {
-          world = source.currentWorld;
-          completer.complete();
+          completer.complete(source.currentWorld!);
         });
-        await completer.future;
-        expectPlayerAt(world, 1, 1);
-        world.left();
-        expectPlayerAt(world, 0, 1);
-        world.left();
-        expectPlayerAt(world, 0, 1);
-        world.right();
-        expectPlayerAt(world, 1, 1);
-        world.right();
-        expectPlayerAt(world, 1, 1);
-        world.up();
-        expectPlayerAt(world, 1, 0);
-        world.up();
-        expectPlayerAt(world, 1, 0);
-        world.down();
-        expectPlayerAt(world, 1, 1);
-        world.down();
-        expectPlayerAt(world, 1, 1);
+        World world = await completer.future;
+        expect(world.objects.length, equals(21));
+        expect(world.objects[9] is Player, true);
+        Player p = world.objects[9] as Player;
+        expectPlayerAt(p, 2, 2);
+        world.left(p);
+        expectPlayerAt(p, 1, 2);
+        world.left(p);
+        expectPlayerAt(p, 1, 2);
+        world.right(p);
+        expectPlayerAt(p, 2, 2);
+        world.right(p);
+        expectPlayerAt(p, 2, 2);
+        world.up(p);
+        expectPlayerAt(p, 2, 1);
+        world.up(p);
+        expectPlayerAt(p, 2, 1);
+        world.down(p);
+        expectPlayerAt(p, 2, 2);
+        world.down(p);
+        expectPlayerAt(p, 2, 2);
       });
     },
   );
 }
 
-void expectPlayerAt(World w, int x, int y) {
-  expect(w.playerX, equals(x));
-  expect(w.playerY, equals(y));
+void expectPlayerAt(Player player, int x, int y) {
+  expect(player.position.x, equals(x));
+  expect(player.position.y, equals(y));
 }
 
 class TestWorldSource extends WorldSource {

@@ -1,19 +1,14 @@
-1 1
-end
+l6
 l5
-TTTTTTTTTTTTTTTTTTTTTTGTT|
-T TTTTTTTTTTTTTTTTTTTT TT|
-T TTTT  >        TTTT   T|
-T   a bTTTTTTTTT TTTT   T|
-TTTTTT TT        TT c  TT|
-TTTTTTvTT TTTTTTTTT TTTTT|
-TTTTTT TT    >  TTT    TT|
-TTTTTT TTTTTTTT TTTTTT TT|
-TTTTTT       >  TTTT   TT|
-TTTTTTTTTTTTTTT TTTT TTTT|
-TTTTTTTTTTTTTTT      TTTT|
-TTTTTTTTTTTTTTTTTTTTTTTTT|
 
-a A fork in the road! Which way will you go?
-b
-c You find a clearing, curious.
+TTTTTTTTT| (level 3 of PP)
+T    TTTT
+T G_#TTTT
+T    TTTT
+T a  TTTT
+T       T
+T  TT   T
+TTTTTTTTT
+
+
+a This one's a bit complicated, but surely you can manage it. (l5)

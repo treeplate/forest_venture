@@ -1,12 +1,13 @@
-0 1
 l4
 l3
-TTTTTTTTT| You see a strange
-     a vT| arrow on the floor.
-TTTTTTTvT| 
-TTTTTTTbT| It appears to move
-TTTTTTTGT| you when you step
-TTTTTTTTT| on it.
 
-a You see a strange arrow on the floor.
-b It appears to move you when you step on it.
+TTTTTTT|
+TG    T|
+T     T|
+T    #T|
+T a T T|
+T   T_T|
+TTTTTTT|
+
+
+a You find a box! You see that it can be pushed around. (l3)
