@@ -87,10 +87,10 @@ void main() {
 
       testWidgets('Move unit tests', (WidgetTester tester) async {
         final WorldSource source = TestWorldSource("1 1\n...\nmunit\n  |\n  |");
-        World world;
+        late World world;
         Completer<void> completer = Completer<void>();
         source.addListener(() {
-          world = source.currentWorld;
+          world = source.currentWorld!;
           completer.complete();
         });
         await completer.future;
@@ -123,5 +123,9 @@ void expectPlayerAt(World w, int x, int y) {
 
 class TestWorldSource extends WorldSource {
   TestWorldSource(String data) : super((String name) async => data);
-  TestWorldSource.empty() : super(null);
+  TestWorldSource.empty()
+      : super((name) {
+          expect("error", "TWS in BWT triggered");
+          throw StateError('expect(false, true) did not terminate');
+        });
 }

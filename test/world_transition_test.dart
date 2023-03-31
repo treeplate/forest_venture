@@ -14,22 +14,24 @@ const String _goalWorld = '0 0\n'
     ' G|';
 
 void main() {
-  test('Transition unit tests', () async {
-        final WorldSource source = TestWorldSource.only;
-        World world;
-        Completer<void> completer = Completer<void>();
-        source.addListener(() {
-          if(source.currentWorld != null) {
-            world = source.currentWorld;
-            completer?.complete();
-          }
-        });
-        await completer.future;
-        expect(world?.name ?? "ERR", "main");
-        completer = Completer<void>();
-        world.right();
-        await completer.future;
-        expect(world?.name ?? "ERR", "empty");
+  test(
+    'Transition unit tests',
+    () async {
+      final WorldSource source = TestWorldSource.only;
+      World? world;
+      Completer<void> completer = Completer<void>();
+      source.addListener(() {
+        if (source.currentWorld != null) {
+          world = source.currentWorld;
+          completer.complete();
+        }
+      });
+      await completer.future;
+      expect(world?.name ?? "ERR1", "main");
+      completer = Completer<void>();
+      world!.right();
+      await completer.future;
+      expect(world?.name ?? "ERR2", "empty");
     },
   );
 }
@@ -40,7 +42,7 @@ Map<String, String> worlds = {
 };
 
 class TestWorldSource extends WorldSource {
-  TestWorldSource() : super((String name) async => worlds[name]);
+  TestWorldSource() : super((String name) async => worlds[name]!);
   static TestWorldSource only = TestWorldSource();
 }
 
