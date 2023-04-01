@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide Threshold;
-import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 
 import 'world.dart';
@@ -18,7 +17,7 @@ void main() {
 }
 
 class ForestVenture extends StatelessWidget {
-  ForestVenture({Key key, this.source}) : super(key: key);
+  ForestVenture({super.key, required this.source});
   final WorldSource source;
 
   @override
@@ -33,7 +32,7 @@ class ForestVenture extends StatelessWidget {
 @immutable
 class CellState {
   const CellState(this.backgroundColor);
-  factory CellState.fromCell(Cell cell) {
+  factory CellState.fromCell(Cell? cell) {
     switch (cell.runtimeType) {
       case Null:
         return CellState(Colors.black.withAlpha(50));
@@ -67,7 +66,11 @@ class GoalCellState extends CellState {
   void paint(Canvas canvas, Size cellSize, Offset cellOrigin) {
     super.paint(canvas, cellSize, cellOrigin);
     canvas.drawOval(cellOrigin & cellSize, Paint()..color = Colors.black);
-    canvas.drawOval(cellOrigin & cellSize, Paint()..style = PaintingStyle.stroke..color=Colors.green);
+    canvas.drawOval(
+        cellOrigin & cellSize,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..color = Colors.green);
   }
 }
 
@@ -151,9 +154,6 @@ abstract class WorldState {
   WorldState lerpEnd() => this;
 
   static WorldState lerp(WorldState a, WorldState b, double t) {
-    assert(t != null);
-    assert(a != null);
-    assert(b != null);
     if (t == 0.0) {
       return a;
     }
@@ -179,7 +179,7 @@ class ActiveWorldState extends WorldState {
       world.name,
       world.width,
       world.cells
-          .map<CellState>((Cell cell) => CellState.fromCell(cell))
+          .map<CellState>((Cell? cell) => CellState.fromCell(cell))
           .toList(),
       Offset(world.playerX + 0.5, world.playerY + 0.5),
       world.currentMessage,
@@ -233,7 +233,7 @@ class ActiveWorldState extends WorldState {
         b.name,
         b.width,
         b.grid, // TODO(ianh): lerp grid
-        Offset.lerp(offset, b.offset, t),
+        Offset.lerp(offset, b.offset, t)!,
         b.message, // message is animated by the message UI
       );
     }
@@ -316,9 +316,6 @@ class MultiWorldState extends WorldState {
   WorldState lerpEnd() => worlds.last;
 
   static MultiWorldState lerp(WorldState a, WorldState b, double t) {
-    assert(t != null);
-    assert(a != null);
-    assert(b != null);
     assert(t != 0.0);
     assert(t != 1.0);
     if (a is MultiWorldState) {
@@ -341,16 +338,15 @@ class MultiWorldState extends WorldState {
 }
 
 class WorldStateTween extends Tween<WorldState> {
-  WorldStateTween({WorldState begin, WorldState end})
-      : super(begin: begin, end: end);
+  WorldStateTween({super.begin, super.end});
 
   WorldState lerp(double t) {
-    return WorldState.lerp(begin, end, t);
+    return WorldState.lerp(begin!, end!, t);
   }
 }
 
 class GamePage extends StatefulWidget {
-  GamePage({Key key, this.source}) : super(key: key);
+  GamePage({super.key, required this.source});
 
   final WorldSource source;
 
@@ -366,9 +362,9 @@ class MoveIntent extends Intent {
 }
 
 class _GamePageState extends State<GamePage> {
-  World _world;
-  WorldState _currentFrame;
-  MoveDirection /*?*/ _pendingDirection;
+  World? _world;
+  WorldState? _currentFrame;
+  MoveDirection? _pendingDirection;
   bool _animating = false;
 
   @override
@@ -407,14 +403,14 @@ class _GamePageState extends State<GamePage> {
       _animating = _currentFrame != null;
       _currentFrame = _world == null
           ? const EmptyWorldState()
-          : ActiveWorldState.fromWorld(_world);
+          : ActiveWorldState.fromWorld(_world!);
     });
   }
 
   void _handleAnimationEnd() {
     _animating = false;
     if (_pendingDirection != null) {
-      switch (_pendingDirection) {
+      switch (_pendingDirection!) {
         case MoveDirection.left:
           _world?.left();
           break;
@@ -480,7 +476,7 @@ class _GamePageState extends State<GamePage> {
               child: AnimatedWorldCanvas(
                 duration: const Duration(milliseconds: 250),
                 curve: Curves.easeIn,
-                world: _currentFrame,
+                world: _currentFrame!,
                 onEnd: _handleAnimationEnd,
                 child: Stack(
                   children: <Widget>[
@@ -566,7 +562,7 @@ class _GamePageState extends State<GamePage> {
                       child: IgnorePointer(
                         child: AnimatedSwitcher(
                           layoutBuilder: (
-                            Widget currentChild,
+                            Widget? currentChild,
                             List<Widget> previousChildren,
                           ) {
                             return Stack(
@@ -580,17 +576,17 @@ class _GamePageState extends State<GamePage> {
                           duration: const Duration(milliseconds: 350),
                           switchInCurve: Curves.easeIn,
                           switchOutCurve: Curves.easeOut,
-                          child: _currentFrame.message.isEmpty
+                          child: _currentFrame!.message.isEmpty
                               ? SizedBox.shrink()
                               : Container(
-                                  key: Key(_currentFrame.message),
+                                  key: Key(_currentFrame!.message),
                                   padding: EdgeInsets.all(24.0),
                                   decoration: ShapeDecoration(
                                     shape: StadiumBorder(),
                                     color: const Color(0x7F000000),
                                   ),
                                   child: Text(
-                                    _currentFrame.message,
+                                    _currentFrame!.message,
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
                                       inherit: false,
@@ -636,13 +632,13 @@ class PolygonClipper extends CustomClipper<Path> {
 
 class AnimatedWorldCanvas extends ImplicitlyAnimatedWidget {
   AnimatedWorldCanvas({
-    Key key,
-    this.world,
-    Curve curve: Curves.linear,
-    @required Duration duration,
-    VoidCallback onEnd,
-    this.child,
-  }) : super(key: key, curve: curve, duration: duration, onEnd: onEnd);
+    super.key,
+    required this.world,
+    super.curve = Curves.linear,
+    required super.duration,
+    super.onEnd,
+    required this.child,
+  });
 
   final WorldState world;
   final Widget child;
@@ -653,7 +649,7 @@ class AnimatedWorldCanvas extends ImplicitlyAnimatedWidget {
 
 class _AnimatedWorldCanvasState
     extends AnimatedWidgetBaseState<AnimatedWorldCanvas> {
-  Tween<WorldState> _world;
+  Tween<WorldState>? _world;
 
   @override
   void forEachTween(TweenVisitor<dynamic> visitor) {
@@ -667,14 +663,14 @@ class _AnimatedWorldCanvasState
   @override
   Widget build(BuildContext context) {
     return WorldCanvas(
-      world: _world.evaluate(animation),
+      world: _world!.evaluate(animation),
       child: widget.child,
     );
   }
 }
 
 class WorldCanvas extends StatefulWidget {
-  WorldCanvas({Key key, this.world, this.child}) : super(key: key);
+  WorldCanvas({super.key, required this.world, required this.child});
 
   final WorldState world;
 

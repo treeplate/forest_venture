@@ -11,8 +11,8 @@ class WorldSource extends ChangeNotifier {
 
   final DataLoader loader;
 
-  World _currentWorld;
-  World get currentWorld => _currentWorld;
+  World? _currentWorld;
+  World? get currentWorld => _currentWorld;
 
   bool _disposed = false;
 
@@ -96,7 +96,8 @@ class World extends ChangeNotifier {
         MoveResult(Direction(0, 0), Offset(-1, 0));
     Offset oldPos = _playerPos;
     _playerPos = isValid(att.newPos) ? att.newPos : _playerPos;
-    Cell newCell = atOffset(_playerPos);
+    Cell? newCell =
+        atOffset(_playerPos); // TODO(tree): is this actually nullable?
     _checkForMessage(newCell);
     notifyListeners();
     if (newCell is Goal) {
@@ -111,7 +112,7 @@ class World extends ChangeNotifier {
     move(Direction.s());
   }
 
-  final List<Cell> cells;
+  final List<Cell?> cells;
 
   int _nextMessage = 0;
   final List<String> messageIDs;
@@ -119,12 +120,12 @@ class World extends ChangeNotifier {
   String get currentMessage => _currentMessage;
   String _currentMessage = '';
 
-  void _checkForMessage(Cell cell) {
+  void _checkForMessage(Cell? cell) {
     // caller must call notifyListeners if desired
     if (cell is Threshold) {
       if (_nextMessage < messageIDs.length) {
         if (cell.id == messageIDs[_nextMessage]) {
-          _currentMessage = messages[messageIDs[_nextMessage]];
+          _currentMessage = messages[messageIDs[_nextMessage]]!;
           _nextMessage += 1;
         }
       }
@@ -133,7 +134,7 @@ class World extends ChangeNotifier {
 
   factory World.parse(String rawData, WorldSource source) {
     List<String> data = rawData.split('\n');
-    List<Cell> parsed = [];
+    List<Cell?> parsed = [];
     int height = 0;
     List<String> xy = data.first.split(" ");
     int x = int.parse(xy[0]);
@@ -247,7 +248,7 @@ class World extends ChangeNotifier {
   String toString() =>
       "$playerX $playerY\n$name\n$to\n" +
       cells.join('').split("null").join("|\n");
-  Cell at(int x, int y) {
+  Cell? at(int x, int y) {
     try {
       return cells[x + (y * width)];
     } on RangeError {
@@ -255,7 +256,7 @@ class World extends ChangeNotifier {
     }
   }
 
-  Cell atOffset(Offset att) => at(att.dx.toInt(), att.dy.toInt());
+  Cell? atOffset(Offset att) => at(att.dx.toInt(), att.dy.toInt());
 
   bool isValid(Offset offset) {
     return offset.dx < width - 1 &&
