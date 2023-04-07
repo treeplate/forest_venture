@@ -27,6 +27,7 @@ void main() {
             MaterialApp(
               home: GamePage(
                 source: TestWorldSource(_emptyWorld),
+                loadAutosave: false,
               ),
             ),
           );
@@ -45,8 +46,7 @@ void main() {
           await tester.pumpWidget(
             MaterialApp(
               home: GamePage(
-                source: TestWorldSource(_lineWorld),
-              ),
+                  source: TestWorldSource(_lineWorld), loadAutosave: false),
             ),
           );
           await tester.pump();

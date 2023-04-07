@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'dart:ui';
 import 'dart:math';
@@ -16,15 +18,17 @@ class WorldSource extends ChangeNotifier {
 
   bool _disposed = false;
 
-  Future<void> initWorld(String newName) async {
+  Future<World> initWorld(String newName) async {
+    Completer<World> completer = Completer<World>();
     assert(!_disposed);
     _currentWorld = null;
     notifyListeners();
     final String data = await loader(newName);
     if (!_disposed) {
-      _currentWorld = World.parse(data, this);
+      completer.complete(_currentWorld = World.parse(data, this));
       notifyListeners();
     }
+    return completer.future;
   }
 
   @override
@@ -64,9 +68,20 @@ class World extends ChangeNotifier {
   }
 
   Offset _playerPos;
+
   final Offset _initialPos;
   int get playerX => _playerPos.dx.toInt();
   int get playerY => _playerPos.dy.toInt();
+
+  /// Used for savefiles with unusual starting positions.
+  /// [reset] is not affected.
+  void updatePos(Offset newPos) {
+    if (_playerPos != _initialPos) {
+      throw StateError("call [updatePos] before moving, not after");
+    }
+    _playerPos = newPos;
+    notifyListeners();
+  }
 
   void left() {
     move(Direction.a());
@@ -80,8 +95,6 @@ class World extends ChangeNotifier {
     move(Direction.d());
   }
 
-  int x = 0;
-  int y = 0;
   void move(Direction dir) {
     assert(
         dir == Direction.w() ||
@@ -132,7 +145,10 @@ class World extends ChangeNotifier {
     }
   }
 
-  factory World.parse(String rawData, WorldSource source) {
+  factory World.parse(
+    String rawData,
+    WorldSource source,
+  ) {
     List<String> data = rawData.split('\n');
     List<Cell?> parsed = [];
     int height = 0;
@@ -249,11 +265,11 @@ class World extends ChangeNotifier {
       "$playerX $playerY\n$name\n$to\n" +
       cells.join('').split("null").join("|\n");
   Cell? at(int x, int y) {
-    try {
-      return cells[x + (y * width)];
-    } on RangeError {
-      return null;
-    }
+    if (x < 0) return null;
+    if (x > width - 1) return null;
+    if (y < 0) return null;
+    if (y > (cells.length / width) - 1) return null;
+    return cells[x + (y * width)];
   }
 
   Cell? atOffset(Offset att) => at(att.dx.toInt(), att.dy.toInt());
@@ -271,6 +287,10 @@ class World extends ChangeNotifier {
     _nextMessage = 0;
     _checkForMessage(atOffset(_playerPos));
     notifyListeners();
+  }
+
+  String generateSavefile() {
+    return "${_playerPos.dx} ${_playerPos.dy}\n$name";
   }
 }
 

@@ -1,3 +1,5 @@
+import 'dart:io'; // TODO: only import this if we can (using conditional imports)
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide Threshold;
 import 'package:flutter/services.dart';
@@ -24,7 +26,10 @@ class ForestVenture extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Forest Venture',
-      home: GamePage(source: source),
+      home: GamePage(
+        source: source,
+        loadAutosave: true,
+      ),
     );
   }
 }
@@ -346,9 +351,10 @@ class WorldStateTween extends Tween<WorldState> {
 }
 
 class GamePage extends StatefulWidget {
-  GamePage({super.key, required this.source});
+  GamePage({super.key, required this.source, required this.loadAutosave});
 
   final WorldSource source;
+  final bool loadAutosave;
 
   @override
   _GamePageState createState() => _GamePageState();
@@ -371,6 +377,9 @@ class _GamePageState extends State<GamePage> {
   void initState() {
     super.initState();
     widget.source.addListener(_handleSourceUpdate);
+    if (widget.loadAutosave && File('auto.save').existsSync()) {
+      _loadFromFile('auto.save');
+    }
     _handleSourceUpdate();
   }
 
@@ -405,6 +414,9 @@ class _GamePageState extends State<GamePage> {
           ? const EmptyWorldState()
           : ActiveWorldState.fromWorld(_world!);
     });
+    if (_world != null) {
+      _saveToFile('auto.save');
+    }
   }
 
   void _handleAnimationEnd() {
@@ -432,31 +444,31 @@ class _GamePageState extends State<GamePage> {
   Widget build(BuildContext context) {
     assert(_currentFrame != null);
     return Shortcuts(
-      shortcuts: <LogicalKeySet, Intent>{
+      shortcuts: <SingleActivator, Intent>{
         // WASD
-        LogicalKeySet(LogicalKeyboardKey.keyW):
+        SingleActivator(LogicalKeyboardKey.keyW):
             const MoveIntent(MoveDirection.up),
-        LogicalKeySet(LogicalKeyboardKey.keyA):
+        SingleActivator(LogicalKeyboardKey.keyA):
             const MoveIntent(MoveDirection.left),
-        LogicalKeySet(LogicalKeyboardKey.keyS):
+        SingleActivator(LogicalKeyboardKey.keyS):
             const MoveIntent(MoveDirection.down),
-        LogicalKeySet(LogicalKeyboardKey.keyD):
+        SingleActivator(LogicalKeyboardKey.keyD):
             const MoveIntent(MoveDirection.right),
         // Dvorak WASD (A is the same as above)
-        LogicalKeySet(LogicalKeyboardKey.comma):
+        SingleActivator(LogicalKeyboardKey.comma):
             const MoveIntent(MoveDirection.up),
-        LogicalKeySet(LogicalKeyboardKey.keyO):
+        SingleActivator(LogicalKeyboardKey.keyO):
             const MoveIntent(MoveDirection.down),
-        LogicalKeySet(LogicalKeyboardKey.keyE):
+        SingleActivator(LogicalKeyboardKey.keyE):
             const MoveIntent(MoveDirection.right),
         // Arrow keys
-        LogicalKeySet(LogicalKeyboardKey.arrowUp):
+        SingleActivator(LogicalKeyboardKey.arrowUp):
             const MoveIntent(MoveDirection.up),
-        LogicalKeySet(LogicalKeyboardKey.arrowLeft):
+        SingleActivator(LogicalKeyboardKey.arrowLeft):
             const MoveIntent(MoveDirection.left),
-        LogicalKeySet(LogicalKeyboardKey.arrowDown):
+        SingleActivator(LogicalKeyboardKey.arrowDown):
             const MoveIntent(MoveDirection.down),
-        LogicalKeySet(LogicalKeyboardKey.arrowRight):
+        SingleActivator(LogicalKeyboardKey.arrowRight):
             const MoveIntent(MoveDirection.right),
       },
       child: Actions(
@@ -542,11 +554,41 @@ class _GamePageState extends State<GamePage> {
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
                             TextButton(
-                              onPressed: () => _world?.reset(),
+                              onPressed: _world?.reset,
                               child: Container(
                                 color: Color(0x7F000000),
                                 child: Text(
                                   "Reset Level",
+                                  style: TextStyle(fontSize: 10, height: 1),
+                                ),
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: _save,
+                              child: Container(
+                                color: Color(0x7F000000),
+                                child: Text(
+                                  "Save",
+                                  style: TextStyle(fontSize: 10, height: 1),
+                                ),
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: _load,
+                              child: Container(
+                                color: Color(0x7F000000),
+                                child: Text(
+                                  "Load",
+                                  style: TextStyle(fontSize: 10, height: 1),
+                                ),
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () => _reset(),
+                              child: Container(
+                                color: Color(0x7F000000),
+                                child: Text(
+                                  "New Game",
                                   style: TextStyle(fontSize: 10, height: 1),
                                 ),
                               ),
@@ -605,6 +647,236 @@ class _GamePageState extends State<GamePage> {
           },
         ),
       ),
+    );
+  }
+
+  void _save() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return BoilerplateDialog(
+          title: 'Save to',
+          children: [
+            ...Directory.current
+                .listSync()
+                .whereType<File>()
+                .where((e) => e.path.endsWith('.save'))
+                .map((e) => Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextButton(
+                            onPressed: () {
+                              _saveToFile(e.path);
+                              Navigator.pop(context);
+                            },
+                            child: Text(
+                                '${e.path.substring(e.path.lastIndexOf('/') + 1, e.path.length - 5)}')),
+                        TextButton(
+                          child: Icon(Icons.delete),
+                          onPressed: () {
+                            _deleteFile(e.path);
+                          },
+                        ),
+                      ],
+                    )),
+            TextButton(
+              child: Text('New Save'),
+              onPressed: () {
+                _newSave();
+              },
+            ),
+            TextButton(
+              child: Text('Cancel'),
+              onPressed: () {
+                Navigator.pop(context);
+              },
+            )
+          ],
+        );
+      },
+    );
+  }
+
+  // TODO: make deleting update the list in the load save dialog (same for saving)
+  void _load() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return BoilerplateDialog(title: 'Load Save', children: [
+          ...Directory.current
+              .listSync()
+              .whereType<File>()
+              .where((e) => e.path.endsWith('.save'))
+              .map((e) => Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextButton(
+                          onPressed: () {
+                            if (!Directory(e.path).existsSync()) {
+                              Navigator.pop(context);
+                              _fileNonexistent();
+                              return;
+                            }
+                            if (e.path.endsWith('/auto2.save')) {
+                              _saveToFile('auto3.save');
+                            } else {
+                              _saveToFile('auto2.save');
+                            }
+                            _loadFromFile(e.path);
+                            Navigator.pop(context);
+                          },
+                          child: Text(
+                              '${e.path.substring(e.path.lastIndexOf('/') + 1, e.path.length - 5)}')),
+                      TextButton(
+                        child: Icon(Icons.delete),
+                        onPressed: () => _deleteFile(e.path),
+                      ),
+                    ],
+                  ))
+              .toList(),
+          TextButton(
+            child: Text('Cancel'),
+            onPressed: () {
+              Navigator.pop(context);
+            },
+          )
+        ]);
+      },
+    );
+  }
+
+  void _reset() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return BoilerplateDialog(
+          title:
+              'Are you sure you want to start a new game? This will erase any unsaved (excluding autosaves) progress.',
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    widget.source.initWorld('main');
+                    Navigator.pop(context);
+                  },
+                  child: const Text('New Game'),
+                ),
+              ],
+            )
+          ],
+        );
+      },
+    );
+  }
+
+  void _saveToFile(String savefileName) {
+    String savefileContents = _world!.generateSavefile();
+    File(savefileName).writeAsStringSync(
+        savefileContents); // TODO: make this async, but keep the saves in the right order
+  }
+
+  void _loadFromFile(String savefileName) {
+    List<String> savefileContents = File(savefileName).readAsLinesSync();
+    widget.source.initWorld('${savefileContents[1]}').then((World world) {
+      assert(world.name == savefileContents[1]);
+      if (!mounted) {
+        return;
+      }
+      List<String> parts = savefileContents[0].split(' ');
+      world.updatePos(Offset(double.parse(parts[0]), double.parse(parts[1])));
+    });
+  }
+
+  void _deleteFile(String path) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return BoilerplateDialog(
+          title:
+              "Are you sure you want to delete ${path.substring(path.lastIndexOf('/') + 1, path.length - 5)}?",
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: Text('No'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    File(path).delete();
+                    Navigator.pop(context);
+                  },
+                  child: Text('Yes'),
+                )
+              ],
+            )
+          ],
+        );
+      },
+    );
+  }
+
+  String? _newName;
+
+  void _newSave() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return BoilerplateDialog(
+          title: "What do you want to call your new save?",
+          children: [
+            TextField(
+              onChanged: (e) {
+                _newName = e;
+              },
+            ),
+            TextButton(
+              child: Text('Pick Name'),
+              onPressed: () {
+                if (_newName == null) {
+                  Navigator.pop(context);
+                  _newSave();
+                }
+                _saveToFile(_newName! + '.save');
+                _newName = null;
+                Navigator.pop(context);
+                Navigator.pop(context);
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _fileNonexistent() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return BoilerplateDialog(
+          title: 'Failure to load',
+          children: [
+            Text('The savefile you have tried to load has been deleted.'),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: Text('Ok.'),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -704,4 +976,29 @@ class _WorldPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_WorldPainter oldDelegate) => world != oldDelegate.world;
+}
+
+class BoilerplateDialog extends StatelessWidget {
+  final String title;
+  final List<Widget> children;
+
+  const BoilerplateDialog(
+      {super.key, required this.title, required this.children});
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            Text(title),
+            const SizedBox(height: 15),
+            ...children,
+          ],
+        ),
+      ),
+    );
+  }
 }
