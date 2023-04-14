@@ -584,7 +584,7 @@ class _GamePageState extends State<GamePage> {
                               ),
                             ),
                             TextButton(
-                              onPressed: () => _reset(),
+                              onPressed: _reset,
                               child: Container(
                                 color: Color(0x7F000000),
                                 child: Text(
