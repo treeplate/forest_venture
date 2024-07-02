@@ -110,7 +110,7 @@ class World extends ChangeNotifier {
     Offset oldPos = _playerPos;
     _playerPos = isValid(att.newPos) ? att.newPos : _playerPos;
     Cell? newCell =
-        atOffset(_playerPos); // TODO(tree): is this actually nullable?
+        atOffset(_playerPos);
     _checkForMessage(newCell);
     notifyListeners();
     if (newCell is Goal) {
