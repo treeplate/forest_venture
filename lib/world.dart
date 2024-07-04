@@ -370,14 +370,13 @@ class Direction {
   }
 
   @override
-  // TODO(tree): implement hashCode
-  int get hashCode => super.hashCode;
+  int get hashCode => Object.hashAll([x, y]);
 
   Direction rotateLeft() {
     if (this == Direction.d()) return Direction.w();
     if (this == Direction.w()) return Direction.a();
     if (this == Direction.a()) return Direction.s();
     if (this == Direction.s()) return Direction.d();
-    throw "Unnown Direction";
+    throw "Unknown Direction";
   }
 }
