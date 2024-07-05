@@ -95,6 +95,10 @@ class World extends ChangeNotifier {
     move(Direction.d());
   }
 
+  void down() {
+    move(Direction.s());
+  }
+
   void move(Direction dir) {
     assert(
         dir == Direction.w() ||
@@ -119,10 +123,6 @@ class World extends ChangeNotifier {
       if (_playerPos == oldPos) return;
       move(Direction(0, 0));
     }
-  }
-
-  void down() {
-    move(Direction.s());
   }
 
   final List<Cell?> cells;
