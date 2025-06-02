@@ -879,7 +879,7 @@ class AnimatedWorldCanvas extends ImplicitlyAnimatedWidget {
   AnimatedWorldCanvas({
     Key? key,
     required this.world,
-    Curve curve: Curves.linear,
+    Curve curve = Curves.linear,
     required Duration duration,
     required VoidCallback onEnd,
     required this.child,

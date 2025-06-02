@@ -27,7 +27,7 @@ void main() {
       World world = await completer.future;
       expect(world.name, "main");
       completer = Completer<World>();
-      expect(world.objects.length, equals(1));
+      expect(world.objects.length, 1);
       expect(world.objects.single is Player, true);
       Player p = world.objects.single as Player;
       world.right(p);
@@ -50,6 +50,6 @@ class TestWorldSource extends WorldSource {
 }
 
 void expectPlayerAt(Player player, int x, int y) {
-  expect(player.position.x, equals(x));
-  expect(player.position.y, equals(y));
+  expect(player.position.x, x);
+  expect(player.position.y, y);
 }

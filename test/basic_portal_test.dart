@@ -76,7 +76,7 @@ void main() {
 }
 
 void expectAt(Position position, SolidObject object) {
-  expect(object.position, equals(position));
+  expect(object.position, position);
 }
 
 Map<String, String> worlds = {

@@ -9,7 +9,7 @@ class WorldSource extends ChangeNotifier {
     initWorld(startingLevel);
   }
 
-  String get startingLevel => 'l1';
+  String get startingLevel => 'multi0';
 
   final DataLoader? loader;
 
