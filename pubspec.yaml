@@ -36,6 +36,8 @@ flutter:
   uses-material-design: true
 
   assets:
+     - worlds/aoc.world
+     - worlds/aocexample.world
      - worlds/main.world
      - worlds/l2.world
      - worlds/l3.world

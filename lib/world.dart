@@ -8,7 +8,7 @@ typedef DataLoader = Future<String> Function(String name);
 
 class WorldSource extends ChangeNotifier {
   WorldSource(this.loader) {
-    initWorld('main');
+    initWorld('aocexample');
   }
 
   final DataLoader loader;
@@ -44,6 +44,7 @@ class World extends ChangeNotifier {
       : _initialPos = _playerPos {
     //print("World.to: '$to'");
     _checkForMessage(atOffset(_playerPos));
+    print(pathLengths());
   }
   World.fromHeight(int height, this.cells, this._playerPos, this.to,
       this.worldSource, this.name, this.messageIDs, this.messages)
@@ -51,6 +52,7 @@ class World extends ChangeNotifier {
         _initialPos = _playerPos {
     //print("World.to fromHeight: '$to'");
     _checkForMessage(atOffset(_playerPos));
+    print(pathLengths());
   }
 
   final WorldSource worldSource;
@@ -113,8 +115,7 @@ class World extends ChangeNotifier {
         MoveResult(Direction(0, 0), Offset(-1, 0));
     Offset oldPos = _playerPos;
     _playerPos = isValid(att.newPos) ? att.newPos : _playerPos;
-    Cell? newCell =
-        atOffset(_playerPos);
+    Cell? newCell = atOffset(_playerPos);
     _checkForMessage(newCell);
     notifyListeners();
     if (newCell is Goal) {
@@ -123,6 +124,68 @@ class World extends ChangeNotifier {
       if (_playerPos == oldPos) return;
       move(Direction(0, 0));
     }
+  }
+
+  Set<int> pathLengths() {
+    List<Offset> positions = [_playerPos];
+    List<Offset> prevPositions = [_playerPos];
+    Set<int> result = {};
+    int t = 0;
+    while (positions.isNotEmpty) {
+      List<int> removalIndices = [];
+      List<Offset> introductions = [];
+      List<Offset> introductionsPrev = [];
+      int i = 0;
+      while (i < positions.length) {
+        Cell? cell = atOffset(positions[i]);
+        if (cell is Goal) {
+          result.add(t);
+          removalIndices.add(i);
+        } else if (cell is OneWay) {
+          Offset newPos = positions[i] + cell.dir.toOffset();
+          if (prevPositions[i] == newPos) {
+            removalIndices.add(i);
+          } else {
+            prevPositions[i] = positions[i];
+            positions[i] = newPos;
+          }
+        } else {
+          if (cell is! Empty) {
+            throw StateError('non-empty/goal/oneway $cell');
+          }
+          removalIndices.add(i);
+          Iterable<Offset> dirs = [
+            Direction.w(),
+            Direction.a(),
+            Direction.s(),
+            Direction.d()
+          ].map((e) => e.toOffset());
+          for (Offset dir in dirs) {
+            Offset newPos = positions[i] + dir;
+            if (newPos == prevPositions[i]) continue;
+            if (!(atOffset(newPos)?.canMove ?? false)) continue;
+            if (introductions.contains(newPos)) continue;
+            introductionsPrev.add(positions[i]);
+            introductions.add(newPos);
+            print('${prevPositions[i]} -> ${positions[i]} -> $newPos');
+          }
+        }
+        i++;
+      }
+      for (int i in removalIndices.reversed) {
+        positions.removeAt(i);
+        prevPositions.removeAt(i);
+      }
+      for (Offset i in introductions) {
+        positions.add(i);
+      }
+      for (Offset i in introductionsPrev) {
+        prevPositions.add(i);
+      }
+      print(positions.length);
+      t++;
+    }
+    return result;
   }
 
   final List<Cell?> cells;
